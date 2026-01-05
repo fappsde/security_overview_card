@@ -1,6 +1,7 @@
 # Security Overview Card
 
 A custom Lovelace card for Home Assistant to display an overview of security-related entities.
+<img width="114" height="82" alt="image" src="https://github.com/user-attachments/assets/a0f6c551-21f9-40db-85f4-dd9d8d370f72" />
 
 ## Features
 
