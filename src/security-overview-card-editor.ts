@@ -7,6 +7,7 @@ import { SecurityOverviewCardConfig } from './security-overview-card';
 export class SecurityOverviewCardEditor extends LitElement implements LovelaceCardEditor {
   @property({ attribute: false }) public hass!: HomeAssistant;
   @state() private _config!: SecurityOverviewCardConfig;
+  @state() private _expandedDevices: Set<string> = new Set();
 
   public setConfig(config: SecurityOverviewCardConfig): void {
     this._config = {
@@ -65,15 +66,27 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
           ${availableDevices.length > 0 ? html`
             ${availableDevices.map(device => {
               const isSelected = (this._config.devices || []).includes(device.id);
+              const isExpanded = this._isDeviceExpanded(device.id);
               return html`
-                <div class="device-row">
-                  <ha-formfield .label="${device.name || device.id}">
-                    <ha-checkbox
-                      .checked="${isSelected}"
-                      @change="${(ev: Event) => this._deviceToggled(ev, device.id)}"
-                    ></ha-checkbox>
-                  </ha-formfield>
-                  <span class="device-info">${device.entityCount} entities</span>
+                <div class="device-container">
+                  <div class="device-row">
+                    <ha-formfield .label="${device.name || device.id}">
+                      <ha-checkbox
+                        .checked="${isSelected}"
+                        @change="${(ev: Event) => this._deviceToggled(ev, device.id)}"
+                      ></ha-checkbox>
+                    </ha-formfield>
+                    <div class="device-actions">
+                      <span class="device-info">${device.entityCount} entities</span>
+                      <ha-icon-button
+                        @click="${() => this._toggleDeviceExpand(device.id)}"
+                        .label="${isExpanded ? 'Collapse' : 'Expand'}"
+                      >
+                        <ha-icon .icon="${isExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'}"></ha-icon>
+                      </ha-icon-button>
+                    </div>
+                  </div>
+                  ${isExpanded ? this._renderDeviceEntities(device) : ''}
                 </div>
               `;
             })}
@@ -220,6 +233,110 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
     };
 
     fireEvent(this, 'config-changed', { config: newConfig });
+  }
+
+  private _isDeviceExpanded(deviceId: string): boolean {
+    return this._expandedDevices.has(deviceId);
+  }
+
+  private _toggleDeviceExpand(deviceId: string): void {
+    if (this._expandedDevices.has(deviceId)) {
+      this._expandedDevices.delete(deviceId);
+    } else {
+      this._expandedDevices.add(deviceId);
+    }
+    this.requestUpdate();
+  }
+
+  private _renderDeviceEntities(device: any): TemplateResult {
+    const deviceEntities = this._getDeviceEntities(device.id);
+    const configEntities = this._config.entities || [];
+
+    return html`
+      <div class="device-entities">
+        ${deviceEntities.map(entity => {
+          const isSelected = configEntities.includes(entity.entity_id);
+          return html`
+            <div class="entity-item">
+              <ha-formfield .label="${entity.attributes.friendly_name || entity.entity_id}">
+                <ha-checkbox
+                  .checked="${isSelected}"
+                  @change="${(ev: Event) => this._entityToggled(ev, entity.entity_id)}"
+                ></ha-checkbox>
+              </ha-formfield>
+              <span class="entity-id">${entity.entity_id}</span>
+            </div>
+          `;
+        })}
+      </div>
+    `;
+  }
+
+  private _entityToggled(ev: Event, entityId: string): void {
+    const target = ev.target as any;
+    const checked = target.checked;
+
+    let entities = [...(this._config.entities || [])];
+
+    if (checked) {
+      if (!entities.includes(entityId)) {
+        entities.push(entityId);
+      }
+    } else {
+      entities = entities.filter(id => id !== entityId);
+    }
+
+    const newConfig = {
+      ...this._config,
+      entities,
+    };
+
+    fireEvent(this, 'config-changed', { config: newConfig });
+  }
+
+  private _getDeviceEntities(deviceId: string): any[] {
+    if (!this.hass) {
+      return [];
+    }
+
+    return Object.values(this.hass.states).filter((entity) => {
+      const domain = entity.entity_id.split('.')[0];
+      const isSecurityEntity =
+        ['alarm_control_panel', 'binary_sensor', 'lock', 'camera', 'sensor'].includes(domain) &&
+        (entity.entity_id.includes('security') ||
+         entity.entity_id.includes('alarm') ||
+         entity.entity_id.includes('door') ||
+         entity.entity_id.includes('window') ||
+         entity.entity_id.includes('motion') ||
+         entity.entity_id.includes('lock') ||
+         entity.attributes.device_class === 'door' ||
+         entity.attributes.device_class === 'window' ||
+         entity.attributes.device_class === 'motion' ||
+         entity.attributes.device_class === 'opening' ||
+         entity.attributes.device_class === 'lock' ||
+         entity.attributes.device_class === 'safety' ||
+         entity.attributes.device_class === 'smoke' ||
+         entity.attributes.device_class === 'gas');
+
+      if (!isSecurityEntity) {
+        return false;
+      }
+
+      // Determine entity's device ID using same logic as main card
+      let entityDeviceId = entity.attributes.device_id;
+
+      if (!entityDeviceId) {
+        const friendlyName = entity.attributes.friendly_name || '';
+        const nameParts = friendlyName.split(' ');
+        if (nameParts.length > 1) {
+          entityDeviceId = nameParts.slice(0, -1).join(' ').toLowerCase().replace(/\s+/g, '_');
+        } else {
+          entityDeviceId = `${domain}_devices`;
+        }
+      }
+
+      return entityDeviceId === deviceId;
+    });
   }
 
   private _getAvailableDevices(): Array<{ id: string; name: string; entityCount: number }> {
@@ -372,25 +489,61 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
         margin: 8px 0;
       }
 
+      .device-container {
+        border-bottom: 1px solid var(--divider-color);
+      }
+
+      .device-container:last-child {
+        border-bottom: none;
+      }
+
       .device-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
         padding: 8px 0;
-        border-bottom: 1px solid var(--divider-color);
-      }
-
-      .device-row:last-child {
-        border-bottom: none;
       }
 
       .device-row ha-formfield {
         margin-bottom: 0;
+        flex: 1;
+      }
+
+      .device-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
       }
 
       .device-info {
         color: var(--secondary-text-color);
         font-size: 0.85em;
+      }
+
+      .device-entities {
+        margin-left: 32px;
+        margin-bottom: 8px;
+        padding: 8px;
+        background: var(--secondary-background-color);
+        border-radius: 4px;
+      }
+
+      .entity-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 4px 0;
+      }
+
+      .entity-item ha-formfield {
+        margin-bottom: 0;
+        flex: 1;
+      }
+
+      .entity-id {
+        color: var(--secondary-text-color);
+        font-size: 0.75em;
+        font-family: monospace;
         margin-left: 8px;
       }
 

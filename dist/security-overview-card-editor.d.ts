@@ -4,6 +4,7 @@ import { SecurityOverviewCardConfig } from './security-overview-card';
 export declare class SecurityOverviewCardEditor extends LitElement implements LovelaceCardEditor {
     hass: HomeAssistant;
     private _config;
+    private _expandedDevices;
     setConfig(config: SecurityOverviewCardConfig): void;
     protected render(): TemplateResult;
     private _valueChanged;
@@ -11,6 +12,11 @@ export declare class SecurityOverviewCardEditor extends LitElement implements Lo
     private _addEntity;
     private _removeEntity;
     private _deviceToggled;
+    private _isDeviceExpanded;
+    private _toggleDeviceExpand;
+    private _renderDeviceEntities;
+    private _entityToggled;
+    private _getDeviceEntities;
     private _getAvailableDevices;
     private _getDeviceName;
     static get styles(): CSSResultGroup;
