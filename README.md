@@ -68,6 +68,23 @@ entities:
   - camera.front_camera
 ```
 
+### Compact Dashboard Configuration
+
+For compact dashboards, use the `max_height` option to limit the card height:
+
+```yaml
+type: custom:security-overview-card
+title: Security
+show_header: true
+max_height: 400px  # Card will scroll if content exceeds 400px
+entities:
+  - alarm_control_panel.home_alarm
+  - lock.front_door
+  - lock.back_door
+  - binary_sensor.front_door
+  - binary_sensor.back_door
+```
+
 ### Configuration Options
 
 | Option | Type | Default | Description |
@@ -76,6 +93,7 @@ entities:
 | `title` | string | `Security Overview` | Card title |
 | `show_header` | boolean | `true` | Show or hide the card header |
 | `entities` | list | `[]` | List of entity IDs to display. Leave empty for auto-discovery |
+| `max_height` | string | `none` | Maximum height for the card content (e.g., `300px`, `50vh`). Content will scroll if it exceeds this height. Perfect for compact dashboards |
 
 ## Auto-Discovery
 
@@ -135,6 +153,59 @@ cards:
       - binary_sensor.garage_door
       - camera.garage_camera
 ```
+
+## Troubleshooting
+
+### Visual Editor Not Showing Max Height Option or Entity Selection Not Working
+
+If you don't see the "Max Height" field in the visual editor or can't select entities:
+
+1. **Clear Browser Cache**:
+   - Press `Ctrl+Shift+R` (Windows/Linux) or `Cmd+Shift+R` (Mac) for a hard refresh
+   - Or manually clear your browser cache
+
+2. **Update Resource Version**:
+   - Go to Settings → Dashboards → Resources
+   - Find the security-overview-card resource
+   - Edit it and add/increment a version parameter:
+     ```
+     /local/security-overview-card.js?v=2
+     ```
+
+3. **Verify File Installation**:
+   - Ensure `security-overview-card.js` is in your `config/www/` folder
+   - Check file size is approximately 34KB
+   - Verify the file is the latest version from this repository
+
+4. **Restart Home Assistant**:
+   - Go to Developer Tools → Restart
+   - Wait for Home Assistant to fully restart
+
+5. **Re-add the Card**:
+   - Remove the card from your dashboard
+   - Add it again using the visual editor
+   - You should now see:
+     - Title input field
+     - Show Header toggle
+     - **Max Height input field** (new!)
+     - Entity selection with working dropdown
+     - Add Entity button
+
+### Entity Picker Tips
+
+- Click "Add Entity" to create a new entity picker
+- Click the dropdown to select from available entities
+- Entity pickers now properly save your selection
+- Remove unwanted entities with the X button
+
+### Max Height Not Working
+
+If you set a max_height but don't see scrolling:
+
+- Make sure you entered a valid CSS height value (e.g., `300px`, `50vh`, `20em`)
+- Check that your card has enough entities to exceed the height
+- Try a smaller value like `200px` to test
+- Verify you're viewing the card (not the editor)
 
 ## Support
 
