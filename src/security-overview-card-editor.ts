@@ -57,9 +57,9 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
         ></paper-input>
 
         <div class="devices-config">
-          <h3>Devices</h3>
+          <h3>Device Selection</h3>
           <p class="description">
-            Select specific security devices to display. Leave empty to show all discovered security devices.
+            Select specific security devices or groups to display. Entities are automatically grouped by device or by name. Leave all unchecked to show all discovered security entities.
           </p>
 
           ${availableDevices.length > 0 ? html`
@@ -78,7 +78,7 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
               `;
             })}
           ` : html`
-            <p class="info-message">No security devices found. Entities will be auto-discovered.</p>
+            <p class="info-message">No security entities found in your Home Assistant instance. The card will auto-discover alarm panels, locks, doors, windows, motion sensors, and cameras when available.</p>
           `}
         </div>
 
@@ -249,18 +249,45 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
          entity.attributes.device_class === 'smoke' ||
          entity.attributes.device_class === 'gas');
 
-      if (isSecurityEntity && entity.attributes.device_id) {
-        const deviceId = entity.attributes.device_id;
-        if (!deviceMap.has(deviceId)) {
-          // Try to get device name from entity registry
-          const deviceName = this._getDeviceName(deviceId, entity);
-          deviceMap.set(deviceId, {
-            id: deviceId,
-            name: deviceName,
-            entities: new Set(),
-          });
+      if (isSecurityEntity) {
+        // Try to get device_id from various sources
+        let deviceId = entity.attributes.device_id;
+
+        // Fallback: Try to get from entity registry data if available
+        if (!deviceId && (this.hass as any).devices) {
+          const entityEntry = Object.values((this.hass as any).entities || {}).find(
+            (e: any) => e.entity_id === entity.entity_id
+          );
+          if (entityEntry) {
+            deviceId = (entityEntry as any).device_id;
+          }
         }
-        deviceMap.get(deviceId)!.entities.add(entity.entity_id);
+
+        // Fallback: Group by friendly name prefix (common device naming pattern)
+        if (!deviceId) {
+          const friendlyName = entity.attributes.friendly_name || '';
+          // Extract potential device name (e.g., "Kitchen Door" -> "Kitchen", "Front Door Sensor" -> "Front Door")
+          const nameParts = friendlyName.split(' ');
+          if (nameParts.length > 1) {
+            // Use all but last word as device identifier
+            deviceId = nameParts.slice(0, -1).join(' ').toLowerCase().replace(/\s+/g, '_');
+          } else {
+            // Use entity domain as grouping
+            deviceId = `${domain}_devices`;
+          }
+        }
+
+        if (deviceId) {
+          if (!deviceMap.has(deviceId)) {
+            const deviceName = this._getDeviceName(deviceId, entity);
+            deviceMap.set(deviceId, {
+              id: deviceId,
+              name: deviceName,
+              entities: new Set(),
+            });
+          }
+          deviceMap.get(deviceId)!.entities.add(entity.entity_id);
+        }
       }
     });
 
@@ -279,15 +306,30 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
       return entity.attributes.device_name;
     }
 
+    // If it's a domain-based grouping, provide a readable name
+    if (deviceId.endsWith('_devices')) {
+      const domain = deviceId.replace('_devices', '');
+      const domainNames: Record<string, string> = {
+        'alarm_control_panel': 'Alarm Control Panels',
+        'lock': 'Locks',
+        'binary_sensor': 'Binary Sensors',
+        'camera': 'Cameras',
+        'sensor': 'Sensors',
+      };
+      return domainNames[domain] || deviceId;
+    }
+
     // Try to use friendly name prefix
     const friendlyName = entity.attributes.friendly_name || '';
     const parts = friendlyName.split(' ');
     if (parts.length > 1) {
-      // Return first part(s) as device name
-      return parts.slice(0, -1).join(' ') || deviceId;
+      // Return first part(s) as device name with proper capitalization
+      const deviceName = parts.slice(0, -1).join(' ');
+      return deviceName.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
     }
 
-    return deviceId;
+    // Convert device_id back to readable format
+    return deviceId.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
   }
 
   static get styles(): CSSResultGroup {
