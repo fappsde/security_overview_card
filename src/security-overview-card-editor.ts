@@ -34,6 +34,14 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
           ></ha-switch>
         </ha-formfield>
 
+        <paper-input
+          label="Max Height (e.g., 300px, 50vh)"
+          .value="${this._config.max_height || ''}"
+          .configValue="${'max_height'}"
+          @value-changed="${this._valueChanged}"
+          placeholder="Leave empty for auto height"
+        ></paper-input>
+
         <div class="entities-config">
           <h3>Entities</h3>
           <p class="description">
@@ -46,7 +54,7 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
                 <ha-entity-picker
                   .hass="${this.hass}"
                   .value="${entity}"
-                  .index="${index}"
+                  .configValue="${index}"
                   @value-changed="${this._entityChanged}"
                   allow-custom-entity
                 ></ha-entity-picker>
@@ -108,8 +116,12 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
     }
 
     const target = ev.target as any;
-    const index = target.index;
+    const index = target.configValue;
     const value = ev.detail.value;
+
+    if (value === undefined || value === null) {
+      return;
+    }
 
     const entities = [...(this._config.entities || [])];
     entities[index] = value;

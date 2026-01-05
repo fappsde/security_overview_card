@@ -6,6 +6,7 @@ export interface SecurityOverviewCardConfig extends LovelaceCardConfig {
     entities?: string[];
     show_header?: boolean;
     theme?: string;
+    max_height?: string;
 }
 export declare class SecurityOverviewCard extends LitElement {
     hass: HomeAssistant;
