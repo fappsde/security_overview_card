@@ -16,7 +16,6 @@ export declare class SecurityOverviewCardEditor extends LitElement implements Lo
     private _toggleDeviceExpand;
     private _renderDeviceEntities;
     private _entityToggled;
-    private _getDeviceEntities;
     private _getAvailableDevices;
     private _getDeviceName;
     static get styles(): CSSResultGroup;

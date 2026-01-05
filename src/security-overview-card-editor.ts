@@ -249,12 +249,20 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
   }
 
   private _renderDeviceEntities(device: any): TemplateResult {
-    const deviceEntities = this._getDeviceEntities(device.id);
+    const deviceEntities = device.entities || [];
     const configEntities = this._config.entities || [];
+
+    if (deviceEntities.length === 0) {
+      return html`
+        <div class="device-entities">
+          <p class="info-message">No entities found for this device.</p>
+        </div>
+      `;
+    }
 
     return html`
       <div class="device-entities">
-        ${deviceEntities.map(entity => {
+        ${deviceEntities.map((entity: any) => {
           const isSelected = configEntities.includes(entity.entity_id);
           return html`
             <div class="entity-item">
@@ -294,57 +302,12 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
     fireEvent(this, 'config-changed', { config: newConfig });
   }
 
-  private _getDeviceEntities(deviceId: string): any[] {
+  private _getAvailableDevices(): Array<{ id: string; name: string; entityCount: number; entities: any[] }> {
     if (!this.hass) {
       return [];
     }
 
-    return Object.values(this.hass.states).filter((entity) => {
-      const domain = entity.entity_id.split('.')[0];
-      const isSecurityEntity =
-        ['alarm_control_panel', 'binary_sensor', 'lock', 'camera', 'sensor'].includes(domain) &&
-        (entity.entity_id.includes('security') ||
-         entity.entity_id.includes('alarm') ||
-         entity.entity_id.includes('door') ||
-         entity.entity_id.includes('window') ||
-         entity.entity_id.includes('motion') ||
-         entity.entity_id.includes('lock') ||
-         entity.attributes.device_class === 'door' ||
-         entity.attributes.device_class === 'window' ||
-         entity.attributes.device_class === 'motion' ||
-         entity.attributes.device_class === 'opening' ||
-         entity.attributes.device_class === 'lock' ||
-         entity.attributes.device_class === 'safety' ||
-         entity.attributes.device_class === 'smoke' ||
-         entity.attributes.device_class === 'gas');
-
-      if (!isSecurityEntity) {
-        return false;
-      }
-
-      // Determine entity's device ID using same logic as main card
-      let entityDeviceId = entity.attributes.device_id;
-
-      if (!entityDeviceId) {
-        const friendlyName = entity.attributes.friendly_name || '';
-        const nameParts = friendlyName.split(' ');
-        if (nameParts.length > 1) {
-          entityDeviceId = nameParts.slice(0, -1).join(' ').toLowerCase().replace(/\s+/g, '_');
-        } else {
-          entityDeviceId = `${domain}_devices`;
-        }
-      }
-
-      return entityDeviceId === deviceId;
-    });
-  }
-
-  private _getAvailableDevices(): Array<{ id: string; name: string; entityCount: number }> {
-    if (!this.hass) {
-      return [];
-    }
-
-    const deviceMap = new Map<string, { id: string; name: string; entities: Set<string> }>();
+    const deviceMap = new Map<string, { id: string; name: string; entities: any[] }>();
 
     // Get all security-related entities
     Object.values(this.hass.states).forEach((entity) => {
@@ -400,10 +363,10 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
             deviceMap.set(deviceId, {
               id: deviceId,
               name: deviceName,
-              entities: new Set(),
+              entities: [],
             });
           }
-          deviceMap.get(deviceId)!.entities.add(entity.entity_id);
+          deviceMap.get(deviceId)!.entities.push(entity);
         }
       }
     });
@@ -412,7 +375,8 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
       .map(device => ({
         id: device.id,
         name: device.name,
-        entityCount: device.entities.size,
+        entityCount: device.entities.length,
+        entities: device.entities,
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
   }
