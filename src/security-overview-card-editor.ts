@@ -17,6 +17,8 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
       return html``;
     }
 
+    const availableDevices = this._getAvailableDevices();
+
     return html`
       <div class="card-config">
         <paper-input
@@ -25,11 +27,19 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
           .configValue="${'title'}"
           @value-changed="${this._valueChanged}"
         ></paper-input>
-        
+
         <ha-formfield label="Show Header">
           <ha-switch
             .checked="${this._config.show_header !== false}"
             .configValue="${'show_header'}"
+            @change="${this._valueChanged}"
+          ></ha-switch>
+        </ha-formfield>
+
+        <ha-formfield label="Show Compact Overview">
+          <ha-switch
+            .checked="${this._config.show_compact_overview !== false}"
+            .configValue="${'show_compact_overview'}"
             @change="${this._valueChanged}"
           ></ha-switch>
         </ha-formfield>
@@ -42,12 +52,39 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
           placeholder="Leave empty for auto height"
         ></paper-input>
 
-        <div class="entities-config">
-          <h3>Entities</h3>
+        <div class="devices-config">
+          <h3>Devices</h3>
           <p class="description">
-            Leave empty to auto-discover security entities, or add specific entities below.
+            Select specific security devices to display. Leave empty to show all discovered security devices.
           </p>
-          
+
+          ${availableDevices.length > 0 ? html`
+            ${availableDevices.map(device => {
+              const isSelected = (this._config.devices || []).includes(device.id);
+              return html`
+                <div class="device-row">
+                  <ha-formfield .label="${device.name || device.id}">
+                    <ha-checkbox
+                      .checked="${isSelected}"
+                      .deviceId="${device.id}"
+                      @change="${this._deviceToggled}"
+                    ></ha-checkbox>
+                  </ha-formfield>
+                  <span class="device-info">${device.entityCount} entities</span>
+                </div>
+              `;
+            })}
+          ` : html`
+            <p class="info-message">No security devices found. Entities will be auto-discovered.</p>
+          `}
+        </div>
+
+        <div class="entities-config">
+          <h3>Manual Entity Selection</h3>
+          <p class="description">
+            Manually add specific entities. This will override device selection and auto-discovery.
+          </p>
+
           ${(this._config.entities || []).map(
             (entity, index) => html`
               <div class="entity-row">
@@ -68,7 +105,7 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
               </div>
             `
           )}
-          
+
           <ha-button @click="${this._addEntity}">
             <ha-icon icon="mdi:plus"></ha-icon>
             Add Entity
@@ -160,6 +197,97 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
     fireEvent(this, 'config-changed', { config: newConfig });
   }
 
+  private _deviceToggled(ev: CustomEvent): void {
+    const target = ev.currentTarget as any;
+    const deviceId = target.deviceId;
+    const checked = target.checked;
+
+    let devices = [...(this._config.devices || [])];
+
+    if (checked) {
+      if (!devices.includes(deviceId)) {
+        devices.push(deviceId);
+      }
+    } else {
+      devices = devices.filter(id => id !== deviceId);
+    }
+
+    const newConfig = {
+      ...this._config,
+      devices,
+    };
+
+    fireEvent(this, 'config-changed', { config: newConfig });
+  }
+
+  private _getAvailableDevices(): Array<{ id: string; name: string; entityCount: number }> {
+    if (!this.hass) {
+      return [];
+    }
+
+    const deviceMap = new Map<string, { id: string; name: string; entities: Set<string> }>();
+
+    // Get all security-related entities
+    Object.values(this.hass.states).forEach((entity) => {
+      const domain = entity.entity_id.split('.')[0];
+      const isSecurityEntity =
+        ['alarm_control_panel', 'binary_sensor', 'lock', 'camera', 'sensor'].includes(domain) &&
+        (entity.entity_id.includes('security') ||
+         entity.entity_id.includes('alarm') ||
+         entity.entity_id.includes('door') ||
+         entity.entity_id.includes('window') ||
+         entity.entity_id.includes('motion') ||
+         entity.entity_id.includes('lock') ||
+         entity.attributes.device_class === 'door' ||
+         entity.attributes.device_class === 'window' ||
+         entity.attributes.device_class === 'motion' ||
+         entity.attributes.device_class === 'opening' ||
+         entity.attributes.device_class === 'lock' ||
+         entity.attributes.device_class === 'safety' ||
+         entity.attributes.device_class === 'smoke' ||
+         entity.attributes.device_class === 'gas');
+
+      if (isSecurityEntity && entity.attributes.device_id) {
+        const deviceId = entity.attributes.device_id;
+        if (!deviceMap.has(deviceId)) {
+          // Try to get device name from entity registry
+          const deviceName = this._getDeviceName(deviceId, entity);
+          deviceMap.set(deviceId, {
+            id: deviceId,
+            name: deviceName,
+            entities: new Set(),
+          });
+        }
+        deviceMap.get(deviceId)!.entities.add(entity.entity_id);
+      }
+    });
+
+    return Array.from(deviceMap.values())
+      .map(device => ({
+        id: device.id,
+        name: device.name,
+        entityCount: device.entities.size,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  private _getDeviceName(deviceId: string, entity: any): string {
+    // Try to extract device name from entity attributes
+    if (entity.attributes.device_name) {
+      return entity.attributes.device_name;
+    }
+
+    // Try to use friendly name prefix
+    const friendlyName = entity.attributes.friendly_name || '';
+    const parts = friendlyName.split(' ');
+    if (parts.length > 1) {
+      // Return first part(s) as device name
+      return parts.slice(0, -1).join(' ') || deviceId;
+    }
+
+    return deviceId;
+  }
+
   static get styles(): CSSResultGroup {
     return css`
       .card-config {
@@ -172,19 +300,54 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
         margin-bottom: 16px;
       }
 
+      .devices-config,
       .entities-config {
         margin-top: 24px;
+        padding-top: 16px;
+        border-top: 1px solid var(--divider-color);
       }
 
+      .devices-config h3,
       .entities-config h3 {
         margin-top: 0;
         margin-bottom: 8px;
+        font-size: 1.1em;
       }
 
       .description {
         color: var(--secondary-text-color);
         font-size: 0.9em;
         margin-bottom: 16px;
+        margin-top: 0;
+      }
+
+      .info-message {
+        color: var(--secondary-text-color);
+        font-size: 0.9em;
+        font-style: italic;
+        margin: 8px 0;
+      }
+
+      .device-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--divider-color);
+      }
+
+      .device-row:last-child {
+        border-bottom: none;
+      }
+
+      .device-row ha-formfield {
+        margin-bottom: 0;
+      }
+
+      .device-info {
+        color: var(--secondary-text-color);
+        font-size: 0.85em;
+        margin-left: 8px;
       }
 
       .entity-row {

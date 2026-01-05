@@ -10,6 +10,9 @@ export declare class SecurityOverviewCardEditor extends LitElement implements Lo
     private _entityChanged;
     private _addEntity;
     private _removeEntity;
+    private _deviceToggled;
+    private _getAvailableDevices;
+    private _getDeviceName;
     static get styles(): CSSResultGroup;
 }
 declare global {
