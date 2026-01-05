@@ -132,12 +132,12 @@ export class SecurityOverviewCard extends LitElement {
     };
 
     const groupConfig = [
-      { key: 'alarms', icon: 'mdi:shield-home', label: 'Alarms' },
-      { key: 'locks', icon: 'mdi:lock', label: 'Locks' },
-      { key: 'doors', icon: 'mdi:door-closed', label: 'Doors' },
-      { key: 'windows', icon: 'mdi:window-closed', label: 'Windows' },
-      { key: 'motion', icon: 'mdi:motion-sensor', label: 'Motion' },
-      { key: 'cameras', icon: 'mdi:cctv', label: 'Cameras' },
+      { key: 'alarms', icon: 'mdi:shield-home', label: 'Alarms', activeLabel: 'triggered', inactiveLabel: 'disarmed' },
+      { key: 'locks', icon: 'mdi:lock', label: 'Locks', activeLabel: 'unlocked', inactiveLabel: 'locked' },
+      { key: 'doors', icon: 'mdi:door-closed', label: 'Doors', activeLabel: 'open', inactiveLabel: 'closed' },
+      { key: 'windows', icon: 'mdi:window-closed', label: 'Windows', activeLabel: 'open', inactiveLabel: 'closed' },
+      { key: 'motion', icon: 'mdi:motion-sensor', label: 'Motion', activeLabel: 'detected', inactiveLabel: 'clear' },
+      { key: 'cameras', icon: 'mdi:cctv', label: 'Cameras', activeLabel: 'active', inactiveLabel: 'active' },
     ];
 
     return html`
@@ -149,6 +149,9 @@ export class SecurityOverviewCard extends LitElement {
             const activeCount = groupEntities.filter((e: any) => this._isEntityActive(e)).length;
             const total = groupEntities.length;
             const hasActive = activeCount > 0;
+            const stateLabel = hasActive
+              ? `${activeCount}/${total} ${group.activeLabel}`
+              : `${total}/${total} ${group.inactiveLabel}`;
 
             return html`
               <div class="overview-group ${hasActive ? 'has-active' : ''}">
@@ -156,7 +159,7 @@ export class SecurityOverviewCard extends LitElement {
                 <div class="overview-info">
                   <div class="overview-label">${group.label}</div>
                   <div class="overview-count ${hasActive ? 'active' : ''}">
-                    ${activeCount > 0 ? html`<span class="active-count">${activeCount}</span> / ` : ''}${total}
+                    ${stateLabel}
                   </div>
                 </div>
               </div>
@@ -257,11 +260,31 @@ export class SecurityOverviewCard extends LitElement {
   private _formatState(entity: any): string {
     const state = entity.state;
     const unit = entity.attributes.unit_of_measurement;
-    
+    const deviceClass = entity.attributes.device_class;
+    const domain = entity.entity_id.split('.')[0];
+
     if (unit) {
       return `${state} ${unit}`;
     }
-    
+
+    // Format window and door states
+    if (deviceClass === 'window' || deviceClass === 'door' || deviceClass === 'opening') {
+      if (state.toLowerCase() === 'on') return 'Open';
+      if (state.toLowerCase() === 'off') return 'Closed';
+    }
+
+    // Format lock states
+    if (domain === 'lock') {
+      if (state.toLowerCase() === 'locked') return 'Locked';
+      if (state.toLowerCase() === 'unlocked') return 'Unlocked';
+    }
+
+    // Format motion sensor states
+    if (deviceClass === 'motion') {
+      if (state.toLowerCase() === 'on') return 'Detected';
+      if (state.toLowerCase() === 'off') return 'Clear';
+    }
+
     return state.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
   }
 
