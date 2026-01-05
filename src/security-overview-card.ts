@@ -103,12 +103,32 @@ export class SecurityOverviewCard extends LitElement {
     // Filter by selected devices if any
     if (devices.length > 0) {
       allSecurityEntities = allSecurityEntities.filter((entity) => {
-        const deviceId = entity.attributes.device_id;
-        return deviceId && devices.includes(deviceId);
+        const entityDeviceId = this._getEntityDeviceId(entity);
+        return entityDeviceId && devices.includes(entityDeviceId);
       });
     }
 
     return allSecurityEntities;
+  }
+
+  private _getEntityDeviceId(entity: any): string {
+    const domain = entity.entity_id.split('.')[0];
+
+    // Try to get device_id from entity attributes first
+    if (entity.attributes.device_id) {
+      return entity.attributes.device_id;
+    }
+
+    // Fallback: Group by friendly name prefix (must match editor logic)
+    const friendlyName = entity.attributes.friendly_name || '';
+    const nameParts = friendlyName.split(' ');
+    if (nameParts.length > 1) {
+      // Use all but last word as device identifier
+      return nameParts.slice(0, -1).join(' ').toLowerCase().replace(/\s+/g, '_');
+    }
+
+    // Use entity domain as grouping
+    return `${domain}_devices`;
   }
 
   private _renderCompactOverview(entities: any[]): TemplateResult {
