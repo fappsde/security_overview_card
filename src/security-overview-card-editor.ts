@@ -320,6 +320,7 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
          entity.entity_id.includes('window') ||
          entity.entity_id.includes('motion') ||
          entity.entity_id.includes('lock') ||
+         entity.entity_id.includes('tamper') ||
          entity.attributes.device_class === 'door' ||
          entity.attributes.device_class === 'window' ||
          entity.attributes.device_class === 'motion' ||
@@ -327,7 +328,8 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
          entity.attributes.device_class === 'lock' ||
          entity.attributes.device_class === 'safety' ||
          entity.attributes.device_class === 'smoke' ||
-         entity.attributes.device_class === 'gas');
+         entity.attributes.device_class === 'gas' ||
+         entity.attributes.device_class === 'tamper');
 
       if (isSecurityEntity) {
         // Try to get device_id from various sources

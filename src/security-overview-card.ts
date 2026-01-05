@@ -90,6 +90,7 @@ export class SecurityOverviewCard extends LitElement {
          entity.entity_id.includes('window') ||
          entity.entity_id.includes('motion') ||
          entity.entity_id.includes('lock') ||
+         entity.entity_id.includes('tamper') ||
          entity.attributes.device_class === 'door' ||
          entity.attributes.device_class === 'window' ||
          entity.attributes.device_class === 'motion' ||
@@ -97,7 +98,8 @@ export class SecurityOverviewCard extends LitElement {
          entity.attributes.device_class === 'lock' ||
          entity.attributes.device_class === 'safety' ||
          entity.attributes.device_class === 'smoke' ||
-         entity.attributes.device_class === 'gas');
+         entity.attributes.device_class === 'gas' ||
+         entity.attributes.device_class === 'tamper');
     });
 
     // Filter by selected devices if any
@@ -132,23 +134,35 @@ export class SecurityOverviewCard extends LitElement {
   }
 
   private _renderCompactOverview(entities: any[]): TemplateResult {
-    // Group entities by type
+    // Helper to check if entity is tamper
+    const isTamper = (e: any) =>
+      e.attributes.device_class === 'tamper' ||
+      e.entity_id.includes('tamper');
+
+    // Group entities by type (excluding tamper from other groups)
     const groups: Record<string, any[]> = {
       alarms: entities.filter((e: any) => e.entity_id.split('.')[0] === 'alarm_control_panel'),
       locks: entities.filter((e: any) => e.entity_id.split('.')[0] === 'lock'),
       doors: entities.filter((e: any) =>
-        e.attributes.device_class === 'door' ||
-        (e.entity_id.includes('door') && e.entity_id.split('.')[0] === 'binary_sensor')
+        !isTamper(e) && (
+          e.attributes.device_class === 'door' ||
+          (e.entity_id.includes('door') && e.entity_id.split('.')[0] === 'binary_sensor')
+        )
       ),
       windows: entities.filter((e: any) =>
-        e.attributes.device_class === 'window' ||
-        (e.entity_id.includes('window') && e.entity_id.split('.')[0] === 'binary_sensor')
+        !isTamper(e) && (
+          e.attributes.device_class === 'window' ||
+          (e.entity_id.includes('window') && e.entity_id.split('.')[0] === 'binary_sensor')
+        )
       ),
       motion: entities.filter((e: any) =>
-        e.attributes.device_class === 'motion' ||
-        (e.entity_id.includes('motion') && e.entity_id.split('.')[0] === 'binary_sensor')
+        !isTamper(e) && (
+          e.attributes.device_class === 'motion' ||
+          (e.entity_id.includes('motion') && e.entity_id.split('.')[0] === 'binary_sensor')
+        )
       ),
       cameras: entities.filter((e: any) => e.entity_id.split('.')[0] === 'camera'),
+      tamper: entities.filter((e: any) => isTamper(e)),
     };
 
     const groupConfig = [
@@ -158,6 +172,7 @@ export class SecurityOverviewCard extends LitElement {
       { key: 'windows', icon: 'mdi:window-closed', label: 'Windows', activeLabel: 'open', inactiveLabel: 'closed' },
       { key: 'motion', icon: 'mdi:motion-sensor', label: 'Motion', activeLabel: 'detected', inactiveLabel: 'clear' },
       { key: 'cameras', icon: 'mdi:cctv', label: 'Cameras', activeLabel: 'active', inactiveLabel: 'active' },
+      { key: 'tamper', icon: 'mdi:shield-alert', label: 'Tamper', activeLabel: 'triggered', inactiveLabel: 'ok' },
     ];
 
     return html`
@@ -258,6 +273,9 @@ export class SecurityOverviewCard extends LitElement {
     }
 
     // Device class based icons for binary sensors
+    if (deviceClass === 'tamper' || entity.entity_id.includes('tamper')) {
+      return state === 'on' ? 'mdi:shield-alert' : 'mdi:shield-check';
+    }
     if (deviceClass === 'door') {
       return state === 'on' ? 'mdi:door-open' : 'mdi:door-closed';
     }
@@ -285,6 +303,12 @@ export class SecurityOverviewCard extends LitElement {
 
     if (unit) {
       return `${state} ${unit}`;
+    }
+
+    // Format tamper sensor states
+    if (deviceClass === 'tamper' || entity.entity_id.includes('tamper')) {
+      if (state.toLowerCase() === 'on') return 'Triggered';
+      if (state.toLowerCase() === 'off') return 'OK';
     }
 
     // Format window and door states
