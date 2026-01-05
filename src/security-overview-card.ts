@@ -94,11 +94,10 @@ export class SecurityOverviewCard extends LitElement {
   private _renderEntity(entity: any): TemplateResult {
     const state = entity.state;
     const name = entity.attributes.friendly_name || entity.entity_id;
-    const domain = entity.entity_id.split('.')[0];
     const isActive = this._isEntityActive(entity);
     
-    let icon = this._getEntityIcon(entity);
-    let stateClass = isActive ? 'state-active' : 'state-inactive';
+    const icon = this._getEntityIcon(entity);
+    const stateClass = isActive ? 'state-active' : 'state-inactive';
 
     return html`
       <div class="entity-row ${stateClass}" @click="${() => this._handleEntityClick(entity.entity_id)}">
