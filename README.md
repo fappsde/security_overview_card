@@ -1,197 +1,144 @@
-# Window Overview Card
+# Security Overview Card
 
-Eine benutzerdefinierte Lovelace-Karte für Home Assistant zur Anzeige von Fensterstatus (offen/gekippt/geschlossen), einfachen Kontakten und Tamper-Alarmen.
-
-![Preview](preview.png)
+A custom Lovelace card for Home Assistant to display an overview of security-related entities.
 
 ## Features
 
-- **Automatische Erkennung** von Sensoren per Regex-Pattern
-- **Unterstützte Sensortypen:**
-  - Kombinierte Sensoren mit Neigungserkennung (offen/gekippt/geschlossen)
-  - Einfache Binärsensoren (offen/geschlossen)
-  - Tamper-Kontakte
-- **Zusammenfassung** mit Anzahl pro Status
-- **Detailansicht** mit allen Sensoren
-- **Kompakter Modus** für "Verlassen des Hauses"-Dashboard
-- **Gruppierung nach Bereich**
-- **Visueller Editor** mit Dropdown-Auswahl
-- **Anklickbare Einträge** für More-Info Dialog
+- 🔍 **Auto-discovery**: Automatically finds and displays security-related entities (alarms, locks, doors, windows, motion sensors, cameras)
+- 🎨 **Visual Status**: Color-coded indicators for active/inactive states
+- 🔔 **Quick Access**: Click on any entity to see more details
+- ⚙️ **Configurable**: Choose specific entities or let the card auto-discover them
+- 🎭 **Theme Support**: Works with Home Assistant themes
 
 ## Installation
 
-### HACS (empfohlen)
+### HACS (Recommended)
 
-1. HACS öffnen
-2. "Frontend" → "+" Button
-3. "Custom Repository" hinzufügen
-4. Repository-URL eingeben
-5. "Window Overview Card" installieren
-6. Browser-Cache leeren
+1. Open HACS in Home Assistant
+2. Go to "Frontend"
+3. Click the menu in the top right and select "Custom repositories"
+4. Add this repository URL: `https://github.com/fappsde/security_overview_card`
+5. Category: "Lovelace"
+6. Click "Add"
+7. Find "Security Overview Card" in the list and install it
+8. Restart Home Assistant
 
-### Manuell
+### Manual Installation
 
-1. `window-overview-card.js` in `/config/www/` kopieren
-2. In Home Assistant: Einstellungen → Dashboards → Ressourcen
-3. Ressource hinzufügen:
-   - URL: `/local/window-overview-card.js`
-   - Typ: JavaScript-Modul
-
-## Konfiguration
-
-### Über den visuellen Editor
-
-1. Dashboard bearbeiten
-2. "Karte hinzufügen" → "Window Overview Card"
-3. Einstellungen im Editor anpassen
-
-### YAML-Konfiguration
+1. Download `security-overview-card.js` from the [latest release](https://github.com/fappsde/security_overview_card/releases)
+2. Copy it to `<config>/www/security-overview-card.js`
+3. Add the resource to your Lovelace configuration:
 
 ```yaml
-type: custom:window-overview-card
-title: Fenster & Sicherheit
-icon: mdi:home-lock
+resources:
+  - url: /local/security-overview-card.js
+    type: module
+```
 
-# Automatische Erkennung
-auto_discover: true
-combined_pattern: "^binary_sensor\\.dw_.*_combined$"
-simple_pattern: "^binary_sensor\\.window_security_panel_window_\\d+$"
-tamper_pattern: "^binary_sensor\\..*_tamper$"
+4. Restart Home Assistant
 
-# Manuelle Entitäten (zusätzlich zu auto_discover)
+## Configuration
+
+### Basic Configuration (Auto-discovery)
+
+The card will automatically discover all security-related entities:
+
+```yaml
+type: custom:security-overview-card
+title: Security Overview
+```
+
+### Advanced Configuration
+
+Specify exact entities to display:
+
+```yaml
+type: custom:security-overview-card
+title: Home Security
+show_header: true
 entities:
-  - binary_sensor.custom_window_1
-  - binary_sensor.custom_window_2
-
-# Ausgeschlossene Entitäten
-exclude_entities:
-  - binary_sensor.window_security_panel_window_99
-
-# Filter
-filter_area: wohnzimmer  # Optional: nur bestimmter Bereich
-
-# Anzeige-Optionen
-show_closed: true
-show_tamper: true
-show_last_changed: true
-group_by_area: false
-compact_mode: false
+  - alarm_control_panel.home_alarm
+  - lock.front_door
+  - lock.back_door
+  - binary_sensor.front_door
+  - binary_sensor.back_door
+  - binary_sensor.garage_door
+  - binary_sensor.motion_sensor_1
+  - camera.front_camera
 ```
 
-## Konfigurationsoptionen
+### Configuration Options
 
-| Option | Typ | Standard | Beschreibung |
-|--------|-----|----------|--------------|
-| `title` | string | `Fenster & Sicherheit` | Titel der Karte |
-| `icon` | string | `mdi:home-lock` | Icon im Header |
-| `auto_discover` | boolean | `true` | Automatische Sensorerkennung |
-| `combined_pattern` | string | `^binary_sensor\.dw_.*_combined$` | Regex für kombinierte Sensoren |
-| `simple_pattern` | string | `^binary_sensor\.window_security_panel_window_\d+$` | Regex für einfache Sensoren |
-| `tamper_pattern` | string | `^binary_sensor\..*_tamper$` | Regex für Tamper-Sensoren |
-| `entities` | list | `[]` | Manuell hinzugefügte Entitäten |
-| `exclude_entities` | list | `[]` | Ausgeschlossene Entitäten |
-| `filter_area` | string | `""` | Nach Bereich filtern (area_id) |
-| `show_closed` | boolean | `true` | Geschlossene Fenster anzeigen |
-| `show_tamper` | boolean | `true` | Tamper-Sensoren anzeigen |
-| `show_last_changed` | boolean | `true` | Letzte Änderung anzeigen |
-| `group_by_area` | boolean | `false` | Nach Bereich gruppieren |
-| `compact_mode` | boolean | `false` | Nur Probleme anzeigen |
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `type` | string | **Required** | Must be `custom:security-overview-card` |
+| `title` | string | `Security Overview` | Card title |
+| `show_header` | boolean | `true` | Show or hide the card header |
+| `entities` | list | `[]` | List of entity IDs to display. Leave empty for auto-discovery |
 
-## Sensor-Kompatibilität
+## Auto-Discovery
 
-### Kombinierte Sensoren (mit Neigungserkennung)
+When no entities are specified, the card automatically discovers entities from these domains:
 
-Die Karte erkennt kombinierte Sensoren anhand des `detailed_state` Attributs:
+- `alarm_control_panel.*`
+- `lock.*`
+- `binary_sensor.*` (with device_class: door, window, motion, opening, safety, smoke, gas)
+- `camera.*` (when name contains 'security', 'alarm', or similar keywords)
+- `sensor.*` (when name contains 'security', 'alarm', or similar keywords)
+
+The card looks for entities with keywords like:
+- security
+- alarm
+- door
+- window
+- motion
+- lock
+
+## Visual Indicators
+
+The card uses color-coded indicators:
+
+- 🔴 **Red**: Active/Alert state (open door/window, motion detected, alarm triggered, unlocked)
+- 🟢 **Green**: Secure/Inactive state (closed door/window, no motion, alarm disarmed, locked)
+
+## Examples
+
+### Dashboard Example
+
+![Security Overview Card](https://via.placeholder.com/600x400.png?text=Security+Overview+Card)
+
+### Multiple Cards
+
+You can use multiple cards for different security zones:
 
 ```yaml
-# Erwartete Attribute:
-detailed_state: "offen" | "gekippt" | "geschlossen"
-angle: 15  # Optional: Neigungswinkel in Grad
+type: vertical-stack
+cards:
+  - type: custom:security-overview-card
+    title: Main Floor Security
+    entities:
+      - lock.front_door
+      - binary_sensor.front_door
+      - binary_sensor.living_room_motion
+      
+  - type: custom:security-overview-card
+    title: Upper Floor Security
+    entities:
+      - binary_sensor.bedroom_window
+      - binary_sensor.bedroom_motion
+      
+  - type: custom:security-overview-card
+    title: Garage
+    entities:
+      - lock.garage_door
+      - binary_sensor.garage_door
+      - camera.garage_camera
 ```
 
-### Einfache Binärsensoren
+## Support
 
-Standard Home Assistant Binärsensoren:
-- `on` = offen
-- `off` = geschlossen
+For issues, feature requests, or contributions, please visit the [GitHub repository](https://github.com/fappsde/security_overview_card).
 
-### Tamper-Sensoren
+## License
 
-Standard Binärsensoren für Manipulation:
-- `on` = Alarm ausgelöst
-- `off` = OK
-
-## Beispiel-Konfigurationen
-
-### Minimale Konfiguration (nur Auto-Erkennung)
-
-```yaml
-type: custom:window-overview-card
-```
-
-### Für "Verlassen des Hauses"-Dashboard
-
-```yaml
-type: custom:window-overview-card
-title: Sicherheitscheck
-icon: mdi:door
-compact_mode: true
-show_closed: false
-show_last_changed: false
-```
-
-### Gruppiert nach Räumen
-
-```yaml
-type: custom:window-overview-card
-title: Alle Fenster
-group_by_area: true
-show_closed: true
-```
-
-### Nur bestimmte Bereiche
-
-```yaml
-type: custom:window-overview-card
-title: Erdgeschoss Fenster
-filter_area: erdgeschoss
-```
-
-## Styling
-
-Die Karte verwendet CSS-Variablen, die du in deinem Theme anpassen kannst:
-
-```yaml
-# In deiner theme.yaml
-window-overview-card:
-  --woc-open-color: "#db4437"
-  --woc-tilted-color: "#ffa726"
-  --woc-closed-color: "#43a047"
-  --woc-tamper-color: "#db4437"
-```
-
-## Troubleshooting
-
-### Sensoren werden nicht erkannt
-
-1. Prüfe die Entity-IDs in Developer Tools → States
-2. Passe die Regex-Patterns in der Konfiguration an
-3. Oder füge Entitäten manuell hinzu
-
-### Editor zeigt keine Bereiche
-
-Stelle sicher, dass deine Entitäten einem Bereich zugewiesen sind (Einstellungen → Bereiche).
-
-### Neigungswinkel wird nicht angezeigt
-
-Der Sensor muss das Attribut `angle` haben. Bei kombinierten Sensoren aus dem Blueprint ist dies automatisch der Fall.
-
-## Changelog
-
-### v1.0.0
-- Initiale Version
-- Unterstützung für kombinierte und einfache Sensoren
-- Tamper-Alarme
-- Visueller Editor
-- Kompakter Modus
-- Bereichsfilter und -gruppierung
+MIT License - see LICENSE file for details

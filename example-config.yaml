@@ -1,0 +1,66 @@
+# Example Lovelace Card Configuration
+
+## Basic Configuration with Auto-Discovery
+```yaml
+type: custom:security-overview-card
+title: Security Overview
+```
+
+## Configuration with Specific Entities
+```yaml
+type: custom:security-overview-card
+title: Home Security
+show_header: true
+entities:
+  - alarm_control_panel.home_alarm
+  - lock.front_door
+  - lock.back_door
+  - lock.garage_door
+  - binary_sensor.front_door
+  - binary_sensor.back_door
+  - binary_sensor.garage_door
+  - binary_sensor.motion_living_room
+  - binary_sensor.motion_hallway
+  - binary_sensor.smoke_detector_kitchen
+  - camera.front_door
+  - camera.backyard
+```
+
+## Multiple Security Zones
+```yaml
+type: vertical-stack
+cards:
+  - type: custom:security-overview-card
+    title: Main Floor
+    entities:
+      - lock.front_door
+      - binary_sensor.front_door
+      - binary_sensor.living_room_motion
+      - camera.front_door
+      
+  - type: custom:security-overview-card
+    title: Upstairs
+    entities:
+      - binary_sensor.bedroom_window
+      - binary_sensor.bathroom_window
+      - binary_sensor.hallway_motion
+      
+  - type: custom:security-overview-card
+    title: Basement & Garage
+    entities:
+      - lock.garage_door
+      - binary_sensor.garage_door
+      - binary_sensor.basement_window
+      - camera.garage
+```
+
+## Compact Version Without Header
+```yaml
+type: custom:security-overview-card
+show_header: false
+entities:
+  - lock.front_door
+  - lock.back_door
+  - binary_sensor.front_door
+  - binary_sensor.back_door
+```
