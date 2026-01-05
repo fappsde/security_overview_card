@@ -4,7 +4,9 @@ export interface SecurityOverviewCardConfig extends LovelaceCardConfig {
     type: string;
     title?: string;
     entities?: string[];
+    devices?: string[];
     show_header?: boolean;
+    show_compact_overview?: boolean;
     theme?: string;
     max_height?: string;
 }
@@ -16,6 +18,7 @@ export declare class SecurityOverviewCard extends LitElement {
     static getConfigElement(): Promise<LovelaceCardEditor>;
     protected render(): TemplateResult;
     private _getSecurityEntities;
+    private _renderCompactOverview;
     private _renderEntity;
     private _isEntityActive;
     private _getEntityIcon;

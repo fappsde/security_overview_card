@@ -6,7 +6,9 @@ export interface SecurityOverviewCardConfig extends LovelaceCardConfig {
   type: string;
   title?: string;
   entities?: string[];
+  devices?: string[];
   show_header?: boolean;
+  show_compact_overview?: boolean;
   theme?: string;
   max_height?: string;
 }
@@ -21,7 +23,9 @@ export class SecurityOverviewCard extends LitElement {
       type: 'custom:security-overview-card',
       title: 'Security Overview',
       entities: [],
+      devices: [],
       show_header: true,
+      show_compact_overview: true,
     };
   }
 
@@ -32,6 +36,7 @@ export class SecurityOverviewCard extends LitElement {
     this.config = {
       title: 'Security Overview',
       show_header: true,
+      show_compact_overview: true,
       ...config,
     };
   }
@@ -47,7 +52,8 @@ export class SecurityOverviewCard extends LitElement {
     }
 
     const entities = this.config.entities || [];
-    const securityEntities = this._getSecurityEntities(entities);
+    const devices = this.config.devices || [];
+    const securityEntities = this._getSecurityEntities(entities, devices);
     const maxHeightStyle = this.config.max_height ? `max-height: ${this.config.max_height};` : '';
 
     return html`
@@ -56,6 +62,7 @@ export class SecurityOverviewCard extends LitElement {
           ${securityEntities.length === 0
             ? html`<p class="empty-state">No security entities configured</p>`
             : html`
+                ${this.config.show_compact_overview !== false ? this._renderCompactOverview(securityEntities) : ''}
                 <div class="entities">
                   ${securityEntities.map((entity) => this._renderEntity(entity))}
                 </div>
@@ -65,15 +72,16 @@ export class SecurityOverviewCard extends LitElement {
     `;
   }
 
-  private _getSecurityEntities(entities: string[]) {
+  private _getSecurityEntities(entities: string[], devices: string[]) {
+    // If specific entities are configured, use those
     if (entities.length > 0) {
       return entities
         .map((entityId) => this.hass.states[entityId])
         .filter((entity) => entity !== undefined);
     }
 
-    // Auto-discover security-related entities
-    return Object.values(this.hass.states).filter((entity) => {
+    // Get all security-related entities
+    let allSecurityEntities = Object.values(this.hass.states).filter((entity) => {
       const domain = entity.entity_id.split('.')[0];
       return ['alarm_control_panel', 'binary_sensor', 'lock', 'camera', 'sensor'].includes(domain) &&
         (entity.entity_id.includes('security') ||
@@ -91,6 +99,71 @@ export class SecurityOverviewCard extends LitElement {
          entity.attributes.device_class === 'smoke' ||
          entity.attributes.device_class === 'gas');
     });
+
+    // Filter by selected devices if any
+    if (devices.length > 0) {
+      allSecurityEntities = allSecurityEntities.filter((entity) => {
+        const deviceId = entity.attributes.device_id;
+        return deviceId && devices.includes(deviceId);
+      });
+    }
+
+    return allSecurityEntities;
+  }
+
+  private _renderCompactOverview(entities: any[]): TemplateResult {
+    // Group entities by type
+    const groups: Record<string, any[]> = {
+      alarms: entities.filter((e: any) => e.entity_id.split('.')[0] === 'alarm_control_panel'),
+      locks: entities.filter((e: any) => e.entity_id.split('.')[0] === 'lock'),
+      doors: entities.filter((e: any) =>
+        e.attributes.device_class === 'door' ||
+        (e.entity_id.includes('door') && e.entity_id.split('.')[0] === 'binary_sensor')
+      ),
+      windows: entities.filter((e: any) =>
+        e.attributes.device_class === 'window' ||
+        (e.entity_id.includes('window') && e.entity_id.split('.')[0] === 'binary_sensor')
+      ),
+      motion: entities.filter((e: any) =>
+        e.attributes.device_class === 'motion' ||
+        (e.entity_id.includes('motion') && e.entity_id.split('.')[0] === 'binary_sensor')
+      ),
+      cameras: entities.filter((e: any) => e.entity_id.split('.')[0] === 'camera'),
+    };
+
+    const groupConfig = [
+      { key: 'alarms', icon: 'mdi:shield-home', label: 'Alarms' },
+      { key: 'locks', icon: 'mdi:lock', label: 'Locks' },
+      { key: 'doors', icon: 'mdi:door-closed', label: 'Doors' },
+      { key: 'windows', icon: 'mdi:window-closed', label: 'Windows' },
+      { key: 'motion', icon: 'mdi:motion-sensor', label: 'Motion' },
+      { key: 'cameras', icon: 'mdi:cctv', label: 'Cameras' },
+    ];
+
+    return html`
+      <div class="compact-overview">
+        ${groupConfig
+          .filter(group => groups[group.key].length > 0)
+          .map(group => {
+            const groupEntities = groups[group.key];
+            const activeCount = groupEntities.filter((e: any) => this._isEntityActive(e)).length;
+            const total = groupEntities.length;
+            const hasActive = activeCount > 0;
+
+            return html`
+              <div class="overview-group ${hasActive ? 'has-active' : ''}">
+                <ha-icon .icon="${group.icon}"></ha-icon>
+                <div class="overview-info">
+                  <div class="overview-label">${group.label}</div>
+                  <div class="overview-count ${hasActive ? 'active' : ''}">
+                    ${activeCount > 0 ? html`<span class="active-count">${activeCount}</span> / ` : ''}${total}
+                  </div>
+                </div>
+              </div>
+            `;
+          })}
+      </div>
+    `;
   }
 
   private _renderEntity(entity: any): TemplateResult {
@@ -203,7 +276,8 @@ export class SecurityOverviewCard extends LitElement {
 
   public getCardSize(): number {
     const entities = this.config.entities || [];
-    const autoEntities = this._getSecurityEntities(entities);
+    const devices = this.config.devices || [];
+    const autoEntities = this._getSecurityEntities(entities, devices);
     return Math.max(1, Math.ceil(autoEntities.length / 2));
   }
 
@@ -316,6 +390,71 @@ export class SecurityOverviewCard extends LitElement {
       .status-badge.state-inactive {
         background: var(--success-color);
         color: white;
+      }
+
+      .compact-overview {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+        padding: 12px;
+        background: var(--secondary-background-color);
+        border-radius: 8px;
+      }
+
+      .overview-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px;
+        background: var(--card-background-color);
+        border-radius: 6px;
+        border-left: 3px solid var(--success-color);
+        transition: all 0.2s;
+      }
+
+      .overview-group.has-active {
+        border-left-color: var(--error-color);
+      }
+
+      .overview-group ha-icon {
+        --mdc-icon-size: 20px;
+        color: var(--primary-text-color);
+        flex-shrink: 0;
+      }
+
+      .overview-group.has-active ha-icon {
+        color: var(--error-color);
+      }
+
+      .overview-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+      }
+
+      .overview-label {
+        font-size: 0.75em;
+        color: var(--secondary-text-color);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .overview-count {
+        font-size: 0.9em;
+        font-weight: 600;
+        color: var(--success-color);
+      }
+
+      .overview-count.active {
+        color: var(--error-color);
+      }
+
+      .overview-count .active-count {
+        font-size: 1.1em;
+        font-weight: 700;
       }
     `;
   }
