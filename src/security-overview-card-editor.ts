@@ -9,7 +9,11 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
   @state() private _config!: SecurityOverviewCardConfig;
 
   public setConfig(config: SecurityOverviewCardConfig): void {
-    this._config = config;
+    this._config = {
+      entities: [],
+      devices: [],
+      ...config,
+    };
   }
 
   protected render(): TemplateResult {
@@ -66,8 +70,7 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
                   <ha-formfield .label="${device.name || device.id}">
                     <ha-checkbox
                       .checked="${isSelected}"
-                      .deviceId="${device.id}"
-                      @change="${this._deviceToggled}"
+                      @change="${(ev: Event) => this._deviceToggled(ev, device.id)}"
                     ></ha-checkbox>
                   </ha-formfield>
                   <span class="device-info">${device.entityCount} entities</span>
@@ -197,9 +200,8 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
     fireEvent(this, 'config-changed', { config: newConfig });
   }
 
-  private _deviceToggled(ev: CustomEvent): void {
-    const target = ev.currentTarget as any;
-    const deviceId = target.deviceId;
+  private _deviceToggled(ev: Event, deviceId: string): void {
+    const target = ev.target as any;
     const checked = target.checked;
 
     let devices = [...(this._config.devices || [])];
