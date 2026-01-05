@@ -8,6 +8,7 @@ export interface SecurityOverviewCardConfig extends LovelaceCardConfig {
   entities?: string[];
   show_header?: boolean;
   theme?: string;
+  max_height?: string;
 }
 
 @customElement('security-overview-card')
@@ -47,10 +48,11 @@ export class SecurityOverviewCard extends LitElement {
 
     const entities = this.config.entities || [];
     const securityEntities = this._getSecurityEntities(entities);
+    const maxHeightStyle = this.config.max_height ? `max-height: ${this.config.max_height};` : '';
 
     return html`
       <ha-card .header="${this.config.show_header ? this.config.title : undefined}">
-        <div class="card-content">
+        <div class="card-content" style="${maxHeightStyle}">
           ${securityEntities.length === 0
             ? html`<p class="empty-state">No security entities configured</p>`
             : html`
@@ -217,6 +219,7 @@ export class SecurityOverviewCard extends LitElement {
 
       .card-content {
         padding: 0;
+        overflow-y: auto;
       }
 
       .empty-state {
