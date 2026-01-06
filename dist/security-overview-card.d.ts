@@ -17,6 +17,7 @@ export interface SecurityOverviewCardConfig extends LovelaceCardConfig {
     show_cameras?: boolean;
     show_tamper?: boolean;
     category_selection_mode?: 'single' | 'multiple';
+    show_hidden_when_active?: boolean;
 }
 export declare class SecurityOverviewCard extends LitElement {
     hass: HomeAssistant;
