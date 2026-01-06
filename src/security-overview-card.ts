@@ -83,6 +83,10 @@ export class SecurityOverviewCard extends LitElement {
 
     const maxHeightStyle = this.config.max_height ? `max-height: ${this.config.max_height};` : '';
 
+    // Separate active and inactive entities
+    const activeEntities = securityEntities.filter((entity) => this._isEntityActive(entity));
+    const inactiveEntities = securityEntities.filter((entity) => !this._isEntityActive(entity));
+
     return html`
       <ha-card .header="${this.config.show_header ? this.config.title : undefined}">
         <div class="card-content" style="${maxHeightStyle}">
@@ -91,7 +95,11 @@ export class SecurityOverviewCard extends LitElement {
             : html`
                 ${this.config.show_compact_overview !== false ? this._renderCompactOverview(allEntities) : ''}
                 <div class="entities">
-                  ${securityEntities.map((entity) => this._renderEntity(entity))}
+                  ${activeEntities.map((entity) => this._renderEntity(entity))}
+                  ${activeEntities.length > 0 && inactiveEntities.length > 0
+                    ? html`<div class="entities-separator"></div>`
+                    : ''}
+                  ${inactiveEntities.map((entity) => this._renderEntity(entity))}
                 </div>
               `}
         </div>
@@ -504,6 +512,28 @@ export class SecurityOverviewCard extends LitElement {
         display: flex;
         flex-direction: column;
         gap: 8px;
+      }
+
+      .entities-separator {
+        height: 1px;
+        background: var(--divider-color);
+        margin: 12px 0;
+        position: relative;
+      }
+
+      .entities-separator::after {
+        content: 'OK';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: var(--card-background-color);
+        padding: 0 12px;
+        font-size: 0.75em;
+        color: var(--secondary-text-color);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
 
       .entity-row {
