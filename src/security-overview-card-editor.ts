@@ -141,6 +141,19 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
               @change="${this._valueChanged}"
             ></ha-switch>
           </ha-formfield>
+
+          <div class="divider"></div>
+
+          <ha-formfield label="Show Hidden Entities When Active">
+            <ha-switch
+              .checked="${this._config.show_hidden_when_active === true}"
+              .configValue="${'show_hidden_when_active'}"
+              @change="${this._valueChanged}"
+            ></ha-switch>
+          </ha-formfield>
+          <p class="description secondary">
+            When enabled, hidden entity types (unchecked above) will still appear in the list if they are currently active/triggered (e.g., open doors, unlocked locks, triggered alarms).
+          </p>
         </div>
 
         <div class="devices-config">
@@ -585,6 +598,18 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
         font-size: 0.9em;
         margin-bottom: 16px;
         margin-top: 0;
+      }
+
+      .description.secondary {
+        margin-top: -8px;
+        font-size: 0.85em;
+        font-style: italic;
+      }
+
+      .divider {
+        height: 1px;
+        background: var(--divider-color);
+        margin: 16px 0;
       }
 
       .info-message {

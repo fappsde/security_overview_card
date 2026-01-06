@@ -19,6 +19,7 @@ export interface SecurityOverviewCardConfig extends LovelaceCardConfig {
   show_cameras?: boolean;
   show_tamper?: boolean;
   category_selection_mode?: 'single' | 'multiple';
+  show_hidden_when_active?: boolean;
 }
 
 @customElement('security-overview-card')
@@ -43,6 +44,7 @@ export class SecurityOverviewCard extends LitElement {
       show_cameras: true,
       show_tamper: false,
       category_selection_mode: 'single',
+      show_hidden_when_active: false,
     };
   }
 
@@ -62,6 +64,7 @@ export class SecurityOverviewCard extends LitElement {
       show_cameras: true,
       show_tamper: false,
       category_selection_mode: 'single',
+      show_hidden_when_active: false,
       ...config,
     };
   }
@@ -200,6 +203,9 @@ export class SecurityOverviewCard extends LitElement {
       }
     }
 
+    // Store entities before visibility filtering
+    const entitiesBeforeFilter = [...allSecurityEntities];
+
     // Apply entity type visibility settings for LIST VIEW (applies to all entities)
     allSecurityEntities = allSecurityEntities.filter((entity) => {
       const entityType = this._getEntityType(entity);
@@ -223,6 +229,16 @@ export class SecurityOverviewCard extends LitElement {
           return true;
       }
     });
+
+    // If show_hidden_when_active is enabled, add back hidden entities that are currently active
+    if (this.config.show_hidden_when_active === true) {
+      const visibleEntityIds = new Set(allSecurityEntities.map(e => e.entity_id));
+      const hiddenEntities = entitiesBeforeFilter.filter(e => !visibleEntityIds.has(e.entity_id));
+      const hiddenActiveEntities = hiddenEntities.filter(entity => this._isEntityActive(entity));
+
+      // Add hidden active entities to the list
+      allSecurityEntities = [...allSecurityEntities, ...hiddenActiveEntities];
+    }
 
     return allSecurityEntities;
   }
