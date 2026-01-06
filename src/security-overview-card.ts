@@ -459,9 +459,15 @@ export class SecurityOverviewCard extends LitElement {
     const state = entity.state;
     const name = entity.attributes.friendly_name || entity.entity_id;
     const isActive = this._isEntityActive(entity);
-    
+
     const icon = this._getEntityIcon(entity);
     const stateClass = isActive ? 'state-active' : 'state-inactive';
+
+    // Check if window has tilt detection
+    const deviceClass = entity.attributes.device_class;
+    const hasTiltDetection = deviceClass === 'window' && entity.attributes.detailed_state;
+    const isTilted = hasTiltDetection && entity.attributes.detailed_state.toLowerCase() === 'gekippt';
+    const tiltAngle = entity.attributes.angle;
 
     return html`
       <div class="entity-row ${stateClass}" @click="${() => this._handleEntityClick(entity.entity_id)}">
@@ -470,7 +476,10 @@ export class SecurityOverviewCard extends LitElement {
         </div>
         <div class="entity-info">
           <div class="entity-name">${name}</div>
-          <div class="entity-state">${this._formatState(entity)}</div>
+          <div class="entity-state">
+            ${this._formatState(entity)}
+            ${isTilted && tiltAngle ? html`<span class="tilt-angle"> (${tiltAngle}°)</span>` : ''}
+          </div>
         </div>
         <div class="entity-status">
           <span class="status-badge ${stateClass}">${state}</span>
@@ -486,11 +495,17 @@ export class SecurityOverviewCard extends LitElement {
     if (domain === 'alarm_control_panel') {
       return ['triggered', 'arming', 'pending'].includes(state);
     }
-    
+
     if (domain === 'binary_sensor') {
+      // Check for tilt detection window sensors
+      if (entity.attributes.detailed_state) {
+        const detailedState = entity.attributes.detailed_state.toLowerCase();
+        // 'gekippt' (tilted) or 'offen' (open) means active
+        return detailedState === 'gekippt' || detailedState === 'offen';
+      }
       return state === 'on';
     }
-    
+
     if (domain === 'lock') {
       return state === 'unlocked';
     }
@@ -531,6 +546,17 @@ export class SecurityOverviewCard extends LitElement {
       return state === 'on' ? 'mdi:door-open' : 'mdi:door-closed';
     }
     if (deviceClass === 'window') {
+      // Check for tilt detection
+      if (entity.attributes.detailed_state) {
+        const detailedState = entity.attributes.detailed_state.toLowerCase();
+        if (detailedState === 'gekippt') {
+          return 'mdi:window-open-variant';
+        } else if (detailedState === 'offen') {
+          return 'mdi:window-open';
+        } else {
+          return 'mdi:window-closed';
+        }
+      }
       return state === 'on' ? 'mdi:window-open' : 'mdi:window-closed';
     }
     if (deviceClass === 'motion') {
@@ -564,6 +590,17 @@ export class SecurityOverviewCard extends LitElement {
 
     // Format window and door states
     if (deviceClass === 'window' || deviceClass === 'door' || deviceClass === 'opening') {
+      // Check for tilt detection
+      if (deviceClass === 'window' && entity.attributes.detailed_state) {
+        const detailedState = entity.attributes.detailed_state.toLowerCase();
+        if (detailedState === 'gekippt') {
+          return 'Tilted';
+        } else if (detailedState === 'offen') {
+          return 'Open';
+        } else {
+          return 'Closed';
+        }
+      }
       if (state.toLowerCase() === 'on') return 'Open';
       if (state.toLowerCase() === 'off') return 'Closed';
     }
@@ -707,6 +744,11 @@ export class SecurityOverviewCard extends LitElement {
       .entity-state {
         font-size: 0.9em;
         color: var(--secondary-text-color);
+      }
+
+      .tilt-angle {
+        font-weight: 600;
+        color: var(--warning-color);
       }
 
       .entity-status {
