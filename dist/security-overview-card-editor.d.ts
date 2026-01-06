@@ -8,6 +8,7 @@ export declare class SecurityOverviewCardEditor extends LitElement implements Lo
     setConfig(config: SecurityOverviewCardConfig): void;
     protected render(): TemplateResult;
     private _valueChanged;
+    private _selectionModeChanged;
     private _entityChanged;
     private _addEntity;
     private _removeEntity;

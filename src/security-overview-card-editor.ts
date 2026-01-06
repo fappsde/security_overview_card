@@ -49,6 +49,29 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
           ></ha-switch>
         </ha-formfield>
 
+        <div class="selection-mode-config">
+          <label>Category Selection Mode</label>
+          <p class="description">
+            Choose how clicking categories in the compact overview filters the list. Single mode shows only one category at a time, while Multiple mode allows selecting multiple categories simultaneously.
+          </p>
+          <ha-formfield label="Single Selection">
+            <ha-radio
+              name="category_selection_mode"
+              value="single"
+              .checked="${this._config.category_selection_mode !== 'multiple'}"
+              @change="${this._selectionModeChanged}"
+            ></ha-radio>
+          </ha-formfield>
+          <ha-formfield label="Multiple Selection">
+            <ha-radio
+              name="category_selection_mode"
+              value="multiple"
+              .checked="${this._config.category_selection_mode === 'multiple'}"
+              @change="${this._selectionModeChanged}"
+            ></ha-radio>
+          </ha-formfield>
+        </div>
+
         <paper-input
           label="Max Height (e.g., 300px, 50vh)"
           .value="${this._config.max_height || ''}"
@@ -228,6 +251,26 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
     const newConfig = {
       ...this._config,
       [configValue]: value,
+    };
+
+    fireEvent(this, 'config-changed', { config: newConfig });
+  }
+
+  private _selectionModeChanged(ev: Event): void {
+    if (!this._config || !this.hass) {
+      return;
+    }
+
+    const target = ev.target as any;
+    const value = target.value;
+
+    if (this._config.category_selection_mode === value) {
+      return;
+    }
+
+    const newConfig = {
+      ...this._config,
+      category_selection_mode: value,
     };
 
     fireEvent(this, 'config-changed', { config: newConfig });
@@ -503,12 +546,26 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
         margin-bottom: 16px;
       }
 
+      .selection-mode-config,
       .visibility-config,
       .devices-config,
       .entities-config {
         margin-top: 24px;
         padding-top: 16px;
         border-top: 1px solid var(--divider-color);
+      }
+
+      .selection-mode-config label {
+        font-weight: 500;
+        font-size: 1.1em;
+        display: block;
+        margin-bottom: 8px;
+      }
+
+      .selection-mode-config ha-formfield {
+        display: inline-block;
+        margin-right: 16px;
+        margin-bottom: 8px;
       }
 
       .visibility-config ha-formfield {

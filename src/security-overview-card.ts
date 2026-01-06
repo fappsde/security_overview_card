@@ -18,12 +18,14 @@ export interface SecurityOverviewCardConfig extends LovelaceCardConfig {
   show_motion?: boolean;
   show_cameras?: boolean;
   show_tamper?: boolean;
+  category_selection_mode?: 'single' | 'multiple';
 }
 
 @customElement('security-overview-card')
 export class SecurityOverviewCard extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
   @state() private config!: SecurityOverviewCardConfig;
+  @state() private selectedCategories: string[] = [];
 
   public static getStubConfig(): SecurityOverviewCardConfig {
     return {
@@ -40,6 +42,7 @@ export class SecurityOverviewCard extends LitElement {
       show_motion: true,
       show_cameras: true,
       show_tamper: false,
+      category_selection_mode: 'single',
     };
   }
 
@@ -58,6 +61,7 @@ export class SecurityOverviewCard extends LitElement {
       show_motion: true,
       show_cameras: true,
       show_tamper: false,
+      category_selection_mode: 'single',
       ...config,
     };
   }
@@ -75,8 +79,15 @@ export class SecurityOverviewCard extends LitElement {
     const entities = this.config.entities || [];
     const devices = this.config.devices || [];
 
-    // Get entities for list view (with visibility filters)
-    const securityEntities = this._getSecurityEntities(entities, devices);
+    // Get entities for list view
+    let securityEntities: any[];
+    if (this.selectedCategories.length > 0) {
+      // When categories are selected, show all entities from those categories (ignore visibility filters)
+      securityEntities = this._getEntitiesByCategories(entities, devices, this.selectedCategories);
+    } else {
+      // Normal view with visibility filters
+      securityEntities = this._getSecurityEntities(entities, devices);
+    }
 
     // Get all entities for compact overview (without visibility filters)
     const allEntities = this._getAllSecurityEntities(entities, devices);
@@ -272,6 +283,52 @@ export class SecurityOverviewCard extends LitElement {
     return `${domain}_devices`;
   }
 
+  private _getEntitiesByCategories(entities: string[], devices: string[], categories: string[]): any[] {
+    // Get all entities without visibility filters
+    const allEntities = this._getAllSecurityEntities(entities, devices);
+
+    // Filter by selected categories
+    return allEntities.filter((entity) => {
+      const entityType = this._getEntityType(entity);
+      // Map category keys to entity types
+      const categoryMap: Record<string, string> = {
+        'alarms': 'alarm',
+        'locks': 'lock',
+        'doors': 'door',
+        'windows': 'window',
+        'motion': 'motion',
+        'cameras': 'camera',
+        'tamper': 'tamper',
+      };
+
+      return categories.some(cat => categoryMap[cat] === entityType);
+    });
+  }
+
+  private _handleCategoryClick(categoryKey: string, hasEntities: boolean): void {
+    if (!hasEntities) {
+      return; // Don't allow selection of empty categories
+    }
+
+    const isSingleMode = this.config.category_selection_mode === 'single';
+
+    if (isSingleMode) {
+      // Single selection mode: toggle if same, replace if different
+      if (this.selectedCategories.includes(categoryKey)) {
+        this.selectedCategories = [];
+      } else {
+        this.selectedCategories = [categoryKey];
+      }
+    } else {
+      // Multiple selection mode: toggle category
+      if (this.selectedCategories.includes(categoryKey)) {
+        this.selectedCategories = this.selectedCategories.filter(cat => cat !== categoryKey);
+      } else {
+        this.selectedCategories = [...this.selectedCategories, categoryKey];
+      }
+    }
+  }
+
   private _renderCompactOverview(entities: any[]): TemplateResult {
     // Helper to check if entity is tamper
     const isTamper = (e: any) =>
@@ -316,29 +373,37 @@ export class SecurityOverviewCard extends LitElement {
 
     return html`
       <div class="compact-overview">
-        ${groupConfig
-          .filter(group => groups[group.key].length > 0)
-          .map(group => {
-            const groupEntities = groups[group.key];
-            const activeCount = groupEntities.filter((e: any) => this._isEntityActive(e)).length;
-            const total = groupEntities.length;
-            const hasActive = activeCount > 0;
-            const stateLabel = hasActive
-              ? `${activeCount}/${total} ${group.activeLabel}`
-              : `${total}/${total} ${group.inactiveLabel}`;
+        ${groupConfig.map(group => {
+          const groupEntities = groups[group.key];
+          const hasEntities = groupEntities.length > 0;
+          const activeCount = groupEntities.filter((e: any) => this._isEntityActive(e)).length;
+          const total = groupEntities.length;
+          const hasActive = activeCount > 0;
+          const isSelected = this.selectedCategories.includes(group.key);
+          const stateLabel = hasActive
+            ? `${activeCount}/${total} ${group.activeLabel}`
+            : `${total}/${total} ${group.inactiveLabel}`;
 
-            return html`
-              <div class="overview-group ${hasActive ? 'has-active' : ''}">
-                <ha-icon .icon="${group.icon}"></ha-icon>
-                <div class="overview-info">
-                  <div class="overview-label">${group.label}</div>
-                  <div class="overview-count ${hasActive ? 'active' : ''}">
-                    ${stateLabel}
-                  </div>
+          // Don't render groups with no entities
+          if (!hasEntities) {
+            return '';
+          }
+
+          return html`
+            <div
+              class="overview-group ${hasActive ? 'has-active' : ''} ${isSelected ? 'selected' : ''}"
+              @click="${() => this._handleCategoryClick(group.key, hasEntities)}"
+            >
+              <ha-icon .icon="${group.icon}"></ha-icon>
+              <div class="overview-info">
+                <div class="overview-label">${group.label}</div>
+                <div class="overview-count ${hasActive ? 'active' : ''}">
+                  ${stateLabel}
                 </div>
               </div>
-            `;
-          })}
+            </div>
+          `;
+        })}
       </div>
     `;
   }
@@ -639,10 +704,34 @@ export class SecurityOverviewCard extends LitElement {
         border-radius: 6px;
         border-left: 3px solid var(--success-color);
         transition: all 0.2s;
+        cursor: pointer;
+      }
+
+      .overview-group:hover {
+        background: var(--secondary-background-color);
+        transform: scale(1.02);
       }
 
       .overview-group.has-active {
         border-left-color: var(--error-color);
+      }
+
+      .overview-group.selected {
+        background: var(--primary-color);
+        border-left-color: var(--primary-color);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      }
+
+      .overview-group.selected ha-icon {
+        color: white;
+      }
+
+      .overview-group.selected .overview-label {
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      .overview-group.selected .overview-count {
+        color: white;
       }
 
       .overview-group ha-icon {
