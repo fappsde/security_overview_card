@@ -24,6 +24,7 @@ export declare class SecurityOverviewCard extends LitElement {
     setConfig(config: SecurityOverviewCardConfig): void;
     static getConfigElement(): Promise<LovelaceCardEditor>;
     protected render(): TemplateResult;
+    private _getAllSecurityEntities;
     private _getSecurityEntities;
     private _getEntityType;
     private _getEntityDeviceId;
