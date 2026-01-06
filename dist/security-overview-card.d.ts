@@ -16,6 +16,8 @@ export interface SecurityOverviewCardConfig extends LovelaceCardConfig {
     show_motion?: boolean;
     show_cameras?: boolean;
     show_tamper?: boolean;
+    show_safety?: boolean;
+    show_diagnostic?: boolean;
     category_selection_mode?: 'single' | 'multiple';
     show_hidden_when_active?: boolean;
 }

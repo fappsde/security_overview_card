@@ -18,6 +18,8 @@ export interface SecurityOverviewCardConfig extends LovelaceCardConfig {
   show_motion?: boolean;
   show_cameras?: boolean;
   show_tamper?: boolean;
+  show_safety?: boolean;
+  show_diagnostic?: boolean;
   category_selection_mode?: 'single' | 'multiple';
   show_hidden_when_active?: boolean;
 }
@@ -43,6 +45,8 @@ export class SecurityOverviewCard extends LitElement {
       show_motion: true,
       show_cameras: true,
       show_tamper: false,
+      show_safety: true,
+      show_diagnostic: true,
       category_selection_mode: 'single',
       show_hidden_when_active: false,
     };
@@ -63,6 +67,8 @@ export class SecurityOverviewCard extends LitElement {
       show_motion: true,
       show_cameras: true,
       show_tamper: false,
+      show_safety: true,
+      show_diagnostic: true,
       category_selection_mode: 'single',
       show_hidden_when_active: false,
       ...config,
@@ -132,7 +138,7 @@ export class SecurityOverviewCard extends LitElement {
     // Get all security-related entities
     let allSecurityEntities = Object.values(this.hass.states).filter((entity) => {
       const domain = entity.entity_id.split('.')[0];
-      return ['alarm_control_panel', 'binary_sensor', 'lock', 'camera', 'sensor'].includes(domain) &&
+      return (['alarm_control_panel', 'binary_sensor', 'lock', 'camera', 'sensor', 'update'].includes(domain) &&
         (entity.entity_id.includes('security') ||
          entity.entity_id.includes('alarm') ||
          entity.entity_id.includes('door') ||
@@ -140,6 +146,11 @@ export class SecurityOverviewCard extends LitElement {
          entity.entity_id.includes('motion') ||
          entity.entity_id.includes('lock') ||
          entity.entity_id.includes('tamper') ||
+         entity.entity_id.includes('warning') ||
+         entity.entity_id.includes('nina') ||
+         entity.entity_id.includes('alert') ||
+         entity.entity_id.includes('diagnostic') ||
+         entity.entity_id.includes('update') ||
          entity.attributes.device_class === 'door' ||
          entity.attributes.device_class === 'window' ||
          entity.attributes.device_class === 'motion' ||
@@ -148,7 +159,10 @@ export class SecurityOverviewCard extends LitElement {
          entity.attributes.device_class === 'safety' ||
          entity.attributes.device_class === 'smoke' ||
          entity.attributes.device_class === 'gas' ||
-         entity.attributes.device_class === 'tamper');
+         entity.attributes.device_class === 'tamper' ||
+         entity.attributes.device_class === 'problem' ||
+         entity.attributes.device_class === 'update')) ||
+        domain === 'update';
     });
 
     // Filter by selected devices if any
@@ -175,7 +189,7 @@ export class SecurityOverviewCard extends LitElement {
       // Auto-discover security-related entities
       allSecurityEntities = Object.values(this.hass.states).filter((entity) => {
         const domain = entity.entity_id.split('.')[0];
-        return ['alarm_control_panel', 'binary_sensor', 'lock', 'camera', 'sensor'].includes(domain) &&
+        return (['alarm_control_panel', 'binary_sensor', 'lock', 'camera', 'sensor', 'update'].includes(domain) &&
           (entity.entity_id.includes('security') ||
            entity.entity_id.includes('alarm') ||
            entity.entity_id.includes('door') ||
@@ -183,6 +197,11 @@ export class SecurityOverviewCard extends LitElement {
            entity.entity_id.includes('motion') ||
            entity.entity_id.includes('lock') ||
            entity.entity_id.includes('tamper') ||
+           entity.entity_id.includes('warning') ||
+           entity.entity_id.includes('nina') ||
+           entity.entity_id.includes('alert') ||
+           entity.entity_id.includes('diagnostic') ||
+           entity.entity_id.includes('update') ||
            entity.attributes.device_class === 'door' ||
            entity.attributes.device_class === 'window' ||
            entity.attributes.device_class === 'motion' ||
@@ -191,7 +210,10 @@ export class SecurityOverviewCard extends LitElement {
            entity.attributes.device_class === 'safety' ||
            entity.attributes.device_class === 'smoke' ||
            entity.attributes.device_class === 'gas' ||
-           entity.attributes.device_class === 'tamper');
+           entity.attributes.device_class === 'tamper' ||
+           entity.attributes.device_class === 'problem' ||
+           entity.attributes.device_class === 'update')) ||
+          domain === 'update';
       });
 
       // Filter by selected devices if any
@@ -225,6 +247,10 @@ export class SecurityOverviewCard extends LitElement {
           return this.config.show_cameras !== false;
         case 'tamper':
           return this.config.show_tamper === true; // Default false for tamper
+        case 'safety':
+          return this.config.show_safety !== false;
+        case 'diagnostic':
+          return this.config.show_diagnostic !== false;
         default:
           return true;
       }
@@ -250,6 +276,25 @@ export class SecurityOverviewCard extends LitElement {
     // Check tamper first (highest priority to exclude from other categories)
     if (deviceClass === 'tamper' || entity.entity_id.includes('tamper')) {
       return 'tamper';
+    }
+
+    // Check diagnostic entities
+    if (domain === 'update' ||
+        deviceClass === 'problem' ||
+        deviceClass === 'update' ||
+        entity.entity_id.includes('diagnostic') ||
+        entity.entity_id.includes('update')) {
+      return 'diagnostic';
+    }
+
+    // Check safety/warning entities (smoke, gas, warnings, alerts)
+    if (deviceClass === 'safety' ||
+        deviceClass === 'smoke' ||
+        deviceClass === 'gas' ||
+        entity.entity_id.includes('warning') ||
+        entity.entity_id.includes('nina') ||
+        entity.entity_id.includes('alert')) {
+      return 'safety';
     }
 
     if (domain === 'alarm_control_panel') {
@@ -315,6 +360,8 @@ export class SecurityOverviewCard extends LitElement {
         'motion': 'motion',
         'cameras': 'camera',
         'tamper': 'tamper',
+        'safety': 'safety',
+        'diagnostic': 'diagnostic',
       };
 
       return categories.some(cat => categoryMap[cat] === entityType);
@@ -346,35 +393,17 @@ export class SecurityOverviewCard extends LitElement {
   }
 
   private _renderCompactOverview(entities: any[]): TemplateResult {
-    // Helper to check if entity is tamper
-    const isTamper = (e: any) =>
-      e.attributes.device_class === 'tamper' ||
-      e.entity_id.includes('tamper');
-
-    // Group entities by type (excluding tamper from other groups)
+    // Group entities by type using _getEntityType for consistency
     const groups: Record<string, any[]> = {
-      alarms: entities.filter((e: any) => e.entity_id.split('.')[0] === 'alarm_control_panel'),
-      locks: entities.filter((e: any) => e.entity_id.split('.')[0] === 'lock'),
-      doors: entities.filter((e: any) =>
-        !isTamper(e) && (
-          e.attributes.device_class === 'door' ||
-          (e.entity_id.includes('door') && e.entity_id.split('.')[0] === 'binary_sensor')
-        )
-      ),
-      windows: entities.filter((e: any) =>
-        !isTamper(e) && (
-          e.attributes.device_class === 'window' ||
-          (e.entity_id.includes('window') && e.entity_id.split('.')[0] === 'binary_sensor')
-        )
-      ),
-      motion: entities.filter((e: any) =>
-        !isTamper(e) && (
-          e.attributes.device_class === 'motion' ||
-          (e.entity_id.includes('motion') && e.entity_id.split('.')[0] === 'binary_sensor')
-        )
-      ),
-      cameras: entities.filter((e: any) => e.entity_id.split('.')[0] === 'camera'),
-      tamper: entities.filter((e: any) => isTamper(e)),
+      alarms: entities.filter((e: any) => this._getEntityType(e) === 'alarm'),
+      locks: entities.filter((e: any) => this._getEntityType(e) === 'lock'),
+      doors: entities.filter((e: any) => this._getEntityType(e) === 'door'),
+      windows: entities.filter((e: any) => this._getEntityType(e) === 'window'),
+      motion: entities.filter((e: any) => this._getEntityType(e) === 'motion'),
+      cameras: entities.filter((e: any) => this._getEntityType(e) === 'camera'),
+      safety: entities.filter((e: any) => this._getEntityType(e) === 'safety'),
+      diagnostic: entities.filter((e: any) => this._getEntityType(e) === 'diagnostic'),
+      tamper: entities.filter((e: any) => this._getEntityType(e) === 'tamper'),
     };
 
     const groupConfig = [
@@ -384,6 +413,8 @@ export class SecurityOverviewCard extends LitElement {
       { key: 'windows', icon: 'mdi:window-closed', label: 'Windows', activeLabel: 'open', inactiveLabel: 'closed' },
       { key: 'motion', icon: 'mdi:motion-sensor', label: 'Motion', activeLabel: 'detected', inactiveLabel: 'clear' },
       { key: 'cameras', icon: 'mdi:cctv', label: 'Cameras', activeLabel: 'active', inactiveLabel: 'active' },
+      { key: 'safety', icon: 'mdi:alert', label: 'Safety', activeLabel: 'warning', inactiveLabel: 'ok' },
+      { key: 'diagnostic', icon: 'mdi:information', label: 'Diagnostic', activeLabel: 'issues', inactiveLabel: 'ok' },
       { key: 'tamper', icon: 'mdi:shield-alert', label: 'Tamper', activeLabel: 'triggered', inactiveLabel: 'ok' },
     ];
 

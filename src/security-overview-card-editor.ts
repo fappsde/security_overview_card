@@ -134,6 +134,22 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
             ></ha-switch>
           </ha-formfield>
 
+          <ha-formfield label="Show Safety Alarms">
+            <ha-switch
+              .checked="${this._config.show_safety !== false}"
+              .configValue="${'show_safety'}"
+              @change="${this._valueChanged}"
+            ></ha-switch>
+          </ha-formfield>
+
+          <ha-formfield label="Show Diagnostic">
+            <ha-switch
+              .checked="${this._config.show_diagnostic !== false}"
+              .configValue="${'show_diagnostic'}"
+              @change="${this._valueChanged}"
+            ></ha-switch>
+          </ha-formfield>
+
           <ha-formfield label="Show Tamper Sensors">
             <ha-switch
               .checked="${this._config.show_tamper === true}"
@@ -445,7 +461,7 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
     Object.values(this.hass.states).forEach((entity) => {
       const domain = entity.entity_id.split('.')[0];
       const isSecurityEntity =
-        ['alarm_control_panel', 'binary_sensor', 'lock', 'camera', 'sensor'].includes(domain) &&
+        (['alarm_control_panel', 'binary_sensor', 'lock', 'camera', 'sensor', 'update'].includes(domain) &&
         (entity.entity_id.includes('security') ||
          entity.entity_id.includes('alarm') ||
          entity.entity_id.includes('door') ||
@@ -453,6 +469,11 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
          entity.entity_id.includes('motion') ||
          entity.entity_id.includes('lock') ||
          entity.entity_id.includes('tamper') ||
+         entity.entity_id.includes('warning') ||
+         entity.entity_id.includes('nina') ||
+         entity.entity_id.includes('alert') ||
+         entity.entity_id.includes('diagnostic') ||
+         entity.entity_id.includes('update') ||
          entity.attributes.device_class === 'door' ||
          entity.attributes.device_class === 'window' ||
          entity.attributes.device_class === 'motion' ||
@@ -461,7 +482,10 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
          entity.attributes.device_class === 'safety' ||
          entity.attributes.device_class === 'smoke' ||
          entity.attributes.device_class === 'gas' ||
-         entity.attributes.device_class === 'tamper');
+         entity.attributes.device_class === 'tamper' ||
+         entity.attributes.device_class === 'problem' ||
+         entity.attributes.device_class === 'update')) ||
+        domain === 'update';
 
       if (isSecurityEntity) {
         // Try to get device_id from various sources
