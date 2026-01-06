@@ -60,7 +60,7 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
         <div class="visibility-config">
           <h3>Entity Type Visibility</h3>
           <p class="description">
-            Control which types of security entities are shown. Applies only when using auto-discovery (no manual entity selection).
+            Control which types of security entities are shown in the card. These settings apply to all entities, including manually selected ones.
           </p>
 
           <ha-formfield label="Show Alarms">
