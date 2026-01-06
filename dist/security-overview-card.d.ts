@@ -16,10 +16,12 @@ export interface SecurityOverviewCardConfig extends LovelaceCardConfig {
     show_motion?: boolean;
     show_cameras?: boolean;
     show_tamper?: boolean;
+    category_selection_mode?: 'single' | 'multiple';
 }
 export declare class SecurityOverviewCard extends LitElement {
     hass: HomeAssistant;
     private config;
+    private selectedCategories;
     static getStubConfig(): SecurityOverviewCardConfig;
     setConfig(config: SecurityOverviewCardConfig): void;
     static getConfigElement(): Promise<LovelaceCardEditor>;
@@ -28,6 +30,8 @@ export declare class SecurityOverviewCard extends LitElement {
     private _getSecurityEntities;
     private _getEntityType;
     private _getEntityDeviceId;
+    private _getEntitiesByCategories;
+    private _handleCategoryClick;
     private _renderCompactOverview;
     private _renderEntity;
     private _isEntityActive;
