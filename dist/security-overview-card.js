@@ -288,26 +288,27 @@ const le=e=>(t,i)=>{void 0!==i?i.addInitializer(()=>{customElements.define(e,t)}
           </p>
 
           ${e.length>0?B`
-            ${e.map(e=>{const t=(this._config.devices||[]).includes(e.id),i=this._isDeviceExpanded(e.id);return B`
+            ${e.map(e=>{const t=e.entities||[],i=this._config.entities||[],s=t.filter(e=>i.includes(e.entity_id)).length,n=s===t.length&&t.length>0,o=s>0&&s<t.length,r=this._isDeviceExpanded(e.id);return B`
                 <div class="device-container">
                   <div class="device-row">
                     <ha-formfield .label="${e.name||e.id}">
                       <ha-checkbox
-                        .checked="${t}"
-                        @change="${t=>this._deviceToggled(t,e.id)}"
+                        .checked="${n}"
+                        .indeterminate="${o}"
+                        @change="${t=>this._deviceToggled(t,e)}"
                       ></ha-checkbox>
                     </ha-formfield>
                     <div class="device-actions">
                       <span class="device-info">${e.entityCount} entities</span>
                       <ha-icon-button
                         @click="${()=>this._toggleDeviceExpand(e.id)}"
-                        .label="${i?"Collapse":"Expand"}"
+                        .label="${r?"Collapse":"Expand"}"
                       >
-                        <ha-icon .icon="${i?"mdi:chevron-up":"mdi:chevron-down"}"></ha-icon>
+                        <ha-icon .icon="${r?"mdi:chevron-up":"mdi:chevron-down"}"></ha-icon>
                       </ha-icon-button>
                     </div>
                   </div>
-                  ${i?this._renderDeviceEntities(e):""}
+                  ${r?this._renderDeviceEntities(e):""}
                 </div>
               `})}
           `:B`
@@ -346,7 +347,7 @@ const le=e=>(t,i)=>{void 0!==i?i.addInitializer(()=>{customElements.define(e,t)}
           </ha-button>
         </div>
       </div>
-    `}_valueChanged(e){if(!this._config||!this.hass)return;const t=e.target,i=t.configValue;if(!i)return;let s;if(s=void 0!==t.checked?t.checked:e.detail.value,this._config[i]===s)return;const n={...this._config,[i]:s};_e(this,"config-changed",{config:n})}_entityChanged(e){if(e.stopPropagation(),!this._config||!this.hass)return;const t=e.target.configValue,i=e.detail.value;if(null==i)return;const s=[...this._config.entities||[]];s[t]=i;const n={...this._config,entities:s};_e(this,"config-changed",{config:n})}_addEntity(){const e=[...this._config.entities||[],""],t={...this._config,entities:e};_e(this,"config-changed",{config:t})}_removeEntity(e){const t=e.currentTarget.index,i=[...this._config.entities||[]];i.splice(t,1);const s={...this._config,entities:i};_e(this,"config-changed",{config:s})}_deviceToggled(e,t){const i=e.target.checked;let s=[...this._config.devices||[]];i?s.includes(t)||s.push(t):s=s.filter(e=>e!==t);const n={...this._config,devices:s};_e(this,"config-changed",{config:n})}_isDeviceExpanded(e){return this._expandedDevices.has(e)}_toggleDeviceExpand(e){this._expandedDevices.has(e)?this._expandedDevices.delete(e):this._expandedDevices.add(e),this.requestUpdate()}_renderDeviceEntities(e){const t=e.entities||[],i=this._config.entities||[];return 0===t.length?B`
+    `}_valueChanged(e){if(!this._config||!this.hass)return;const t=e.target,i=t.configValue;if(!i)return;let s;if(s=void 0!==t.checked?t.checked:e.detail.value,this._config[i]===s)return;const n={...this._config,[i]:s};_e(this,"config-changed",{config:n})}_entityChanged(e){if(e.stopPropagation(),!this._config||!this.hass)return;const t=e.target.configValue,i=e.detail.value;if(null==i)return;const s=[...this._config.entities||[]];s[t]=i;const n={...this._config,entities:s};_e(this,"config-changed",{config:n})}_addEntity(){const e=[...this._config.entities||[],""],t={...this._config,entities:e};_e(this,"config-changed",{config:t})}_removeEntity(e){const t=e.currentTarget.index,i=[...this._config.entities||[]];i.splice(t,1);const s={...this._config,entities:i};_e(this,"config-changed",{config:s})}_deviceToggled(e,t){const i=e.target.checked;let s=[...this._config.entities||[]];const n=(t.entities||[]).map(e=>e.entity_id);i?n.forEach(e=>{s.includes(e)||s.push(e)}):s=s.filter(e=>!n.includes(e));const o={...this._config,entities:s};_e(this,"config-changed",{config:o})}_isDeviceExpanded(e){return this._expandedDevices.has(e)}_toggleDeviceExpand(e){this._expandedDevices.has(e)?this._expandedDevices.delete(e):this._expandedDevices.add(e),this.requestUpdate()}_renderDeviceEntities(e){const t=e.entities||[],i=this._config.entities||[];return 0===t.length?B`
         <div class="device-entities">
           <p class="info-message">No entities found for this device.</p>
         </div>

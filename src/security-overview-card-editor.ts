@@ -65,15 +65,23 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
 
           ${availableDevices.length > 0 ? html`
             ${availableDevices.map(device => {
-              const isSelected = (this._config.devices || []).includes(device.id);
+              const deviceEntities = device.entities || [];
+              const configEntities = this._config.entities || [];
+
+              // Calculate device checkbox state based on entity selection
+              const selectedCount = deviceEntities.filter(e => configEntities.includes(e.entity_id)).length;
+              const isFullySelected = selectedCount === deviceEntities.length && deviceEntities.length > 0;
+              const isPartiallySelected = selectedCount > 0 && selectedCount < deviceEntities.length;
+
               const isExpanded = this._isDeviceExpanded(device.id);
               return html`
                 <div class="device-container">
                   <div class="device-row">
                     <ha-formfield .label="${device.name || device.id}">
                       <ha-checkbox
-                        .checked="${isSelected}"
-                        @change="${(ev: Event) => this._deviceToggled(ev, device.id)}"
+                        .checked="${isFullySelected}"
+                        .indeterminate="${isPartiallySelected}"
+                        @change="${(ev: Event) => this._deviceToggled(ev, device)}"
                       ></ha-checkbox>
                     </ha-formfield>
                     <div class="device-actions">
@@ -213,23 +221,28 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
     fireEvent(this, 'config-changed', { config: newConfig });
   }
 
-  private _deviceToggled(ev: Event, deviceId: string): void {
+  private _deviceToggled(ev: Event, device: any): void {
     const target = ev.target as any;
     const checked = target.checked;
 
-    let devices = [...(this._config.devices || [])];
+    let entities = [...(this._config.entities || [])];
+    const deviceEntityIds = (device.entities || []).map((e: any) => e.entity_id);
 
     if (checked) {
-      if (!devices.includes(deviceId)) {
-        devices.push(deviceId);
-      }
+      // Add all entities from this device that aren't already selected
+      deviceEntityIds.forEach((entityId: string) => {
+        if (!entities.includes(entityId)) {
+          entities.push(entityId);
+        }
+      });
     } else {
-      devices = devices.filter(id => id !== deviceId);
+      // Remove all entities from this device
+      entities = entities.filter(id => !deviceEntityIds.includes(id));
     }
 
     const newConfig = {
       ...this._config,
-      devices,
+      entities,
     };
 
     fireEvent(this, 'config-changed', { config: newConfig });
