@@ -11,6 +11,13 @@ export interface SecurityOverviewCardConfig extends LovelaceCardConfig {
   show_compact_overview?: boolean;
   theme?: string;
   max_height?: string;
+  show_alarms?: boolean;
+  show_locks?: boolean;
+  show_doors?: boolean;
+  show_windows?: boolean;
+  show_motion?: boolean;
+  show_cameras?: boolean;
+  show_tamper?: boolean;
 }
 
 @customElement('security-overview-card')
@@ -26,6 +33,13 @@ export class SecurityOverviewCard extends LitElement {
       devices: [],
       show_header: true,
       show_compact_overview: true,
+      show_alarms: true,
+      show_locks: true,
+      show_doors: true,
+      show_windows: true,
+      show_motion: true,
+      show_cameras: true,
+      show_tamper: false,
     };
   }
 
@@ -37,6 +51,13 @@ export class SecurityOverviewCard extends LitElement {
       title: 'Security Overview',
       show_header: true,
       show_compact_overview: true,
+      show_alarms: true,
+      show_locks: true,
+      show_doors: true,
+      show_windows: true,
+      show_motion: true,
+      show_cameras: true,
+      show_tamper: false,
       ...config,
     };
   }
@@ -110,7 +131,67 @@ export class SecurityOverviewCard extends LitElement {
       });
     }
 
+    // Filter by entity type visibility settings
+    allSecurityEntities = allSecurityEntities.filter((entity) => {
+      const entityType = this._getEntityType(entity);
+
+      switch (entityType) {
+        case 'alarm':
+          return this.config.show_alarms !== false;
+        case 'lock':
+          return this.config.show_locks !== false;
+        case 'door':
+          return this.config.show_doors !== false;
+        case 'window':
+          return this.config.show_windows !== false;
+        case 'motion':
+          return this.config.show_motion !== false;
+        case 'camera':
+          return this.config.show_cameras !== false;
+        case 'tamper':
+          return this.config.show_tamper === true; // Default false for tamper
+        default:
+          return true;
+      }
+    });
+
     return allSecurityEntities;
+  }
+
+  private _getEntityType(entity: any): string {
+    const domain = entity.entity_id.split('.')[0];
+    const deviceClass = entity.attributes.device_class;
+
+    // Check tamper first (highest priority to exclude from other categories)
+    if (deviceClass === 'tamper' || entity.entity_id.includes('tamper')) {
+      return 'tamper';
+    }
+
+    if (domain === 'alarm_control_panel') {
+      return 'alarm';
+    }
+
+    if (domain === 'lock') {
+      return 'lock';
+    }
+
+    if (domain === 'camera') {
+      return 'camera';
+    }
+
+    if (deviceClass === 'door' || (entity.entity_id.includes('door') && domain === 'binary_sensor')) {
+      return 'door';
+    }
+
+    if (deviceClass === 'window' || (entity.entity_id.includes('window') && domain === 'binary_sensor')) {
+      return 'window';
+    }
+
+    if (deviceClass === 'motion' || (entity.entity_id.includes('motion') && domain === 'binary_sensor')) {
+      return 'motion';
+    }
+
+    return 'other';
   }
 
   private _getEntityDeviceId(entity: any): string {

@@ -57,6 +57,69 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
           placeholder="Leave empty for auto height"
         ></paper-input>
 
+        <div class="visibility-config">
+          <h3>Entity Type Visibility</h3>
+          <p class="description">
+            Control which types of security entities are shown. Applies only when using auto-discovery (no manual entity selection).
+          </p>
+
+          <ha-formfield label="Show Alarms">
+            <ha-switch
+              .checked="${this._config.show_alarms !== false}"
+              .configValue="${'show_alarms'}"
+              @change="${this._valueChanged}"
+            ></ha-switch>
+          </ha-formfield>
+
+          <ha-formfield label="Show Locks">
+            <ha-switch
+              .checked="${this._config.show_locks !== false}"
+              .configValue="${'show_locks'}"
+              @change="${this._valueChanged}"
+            ></ha-switch>
+          </ha-formfield>
+
+          <ha-formfield label="Show Doors">
+            <ha-switch
+              .checked="${this._config.show_doors !== false}"
+              .configValue="${'show_doors'}"
+              @change="${this._valueChanged}"
+            ></ha-switch>
+          </ha-formfield>
+
+          <ha-formfield label="Show Windows">
+            <ha-switch
+              .checked="${this._config.show_windows !== false}"
+              .configValue="${'show_windows'}"
+              @change="${this._valueChanged}"
+            ></ha-switch>
+          </ha-formfield>
+
+          <ha-formfield label="Show Motion Sensors">
+            <ha-switch
+              .checked="${this._config.show_motion !== false}"
+              .configValue="${'show_motion'}"
+              @change="${this._valueChanged}"
+            ></ha-switch>
+          </ha-formfield>
+
+          <ha-formfield label="Show Cameras">
+            <ha-switch
+              .checked="${this._config.show_cameras !== false}"
+              .configValue="${'show_cameras'}"
+              @change="${this._valueChanged}"
+            ></ha-switch>
+          </ha-formfield>
+
+          <ha-formfield label="Show Tamper Sensors">
+            <ha-switch
+              .checked="${this._config.show_tamper === true}"
+              .configValue="${'show_tamper'}"
+              @change="${this._valueChanged}"
+            ></ha-switch>
+          </ha-formfield>
+        </div>
+
         <div class="devices-config">
           <h3>Device Selection</h3>
           <p class="description">
@@ -440,6 +503,7 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
         margin-bottom: 16px;
       }
 
+      .visibility-config,
       .devices-config,
       .entities-config {
         margin-top: 24px;
@@ -447,6 +511,11 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
         border-top: 1px solid var(--divider-color);
       }
 
+      .visibility-config ha-formfield {
+        margin-bottom: 8px;
+      }
+
+      .visibility-config h3,
       .devices-config h3,
       .entities-config h3 {
         margin-top: 0;
