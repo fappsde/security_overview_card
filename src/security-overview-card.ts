@@ -94,44 +94,46 @@ export class SecurityOverviewCard extends LitElement {
   }
 
   private _getSecurityEntities(entities: string[], devices: string[]) {
+    let allSecurityEntities: any[] = [];
+
     // If specific entities are configured, use those
     if (entities.length > 0) {
-      return entities
+      allSecurityEntities = entities
         .map((entityId) => this.hass.states[entityId])
         .filter((entity) => entity !== undefined);
-    }
-
-    // Get all security-related entities
-    let allSecurityEntities = Object.values(this.hass.states).filter((entity) => {
-      const domain = entity.entity_id.split('.')[0];
-      return ['alarm_control_panel', 'binary_sensor', 'lock', 'camera', 'sensor'].includes(domain) &&
-        (entity.entity_id.includes('security') ||
-         entity.entity_id.includes('alarm') ||
-         entity.entity_id.includes('door') ||
-         entity.entity_id.includes('window') ||
-         entity.entity_id.includes('motion') ||
-         entity.entity_id.includes('lock') ||
-         entity.entity_id.includes('tamper') ||
-         entity.attributes.device_class === 'door' ||
-         entity.attributes.device_class === 'window' ||
-         entity.attributes.device_class === 'motion' ||
-         entity.attributes.device_class === 'opening' ||
-         entity.attributes.device_class === 'lock' ||
-         entity.attributes.device_class === 'safety' ||
-         entity.attributes.device_class === 'smoke' ||
-         entity.attributes.device_class === 'gas' ||
-         entity.attributes.device_class === 'tamper');
-    });
-
-    // Filter by selected devices if any
-    if (devices.length > 0) {
-      allSecurityEntities = allSecurityEntities.filter((entity) => {
-        const entityDeviceId = this._getEntityDeviceId(entity);
-        return entityDeviceId && devices.includes(entityDeviceId);
+    } else {
+      // Get all security-related entities
+      allSecurityEntities = Object.values(this.hass.states).filter((entity) => {
+        const domain = entity.entity_id.split('.')[0];
+        return ['alarm_control_panel', 'binary_sensor', 'lock', 'camera', 'sensor'].includes(domain) &&
+          (entity.entity_id.includes('security') ||
+           entity.entity_id.includes('alarm') ||
+           entity.entity_id.includes('door') ||
+           entity.entity_id.includes('window') ||
+           entity.entity_id.includes('motion') ||
+           entity.entity_id.includes('lock') ||
+           entity.entity_id.includes('tamper') ||
+           entity.attributes.device_class === 'door' ||
+           entity.attributes.device_class === 'window' ||
+           entity.attributes.device_class === 'motion' ||
+           entity.attributes.device_class === 'opening' ||
+           entity.attributes.device_class === 'lock' ||
+           entity.attributes.device_class === 'safety' ||
+           entity.attributes.device_class === 'smoke' ||
+           entity.attributes.device_class === 'gas' ||
+           entity.attributes.device_class === 'tamper');
       });
+
+      // Filter by selected devices if any
+      if (devices.length > 0) {
+        allSecurityEntities = allSecurityEntities.filter((entity) => {
+          const entityDeviceId = this._getEntityDeviceId(entity);
+          return entityDeviceId && devices.includes(entityDeviceId);
+        });
+      }
     }
 
-    // Filter by entity type visibility settings
+    // Apply entity type visibility settings to all entities (manual or auto-discovered)
     allSecurityEntities = allSecurityEntities.filter((entity) => {
       const entityType = this._getEntityType(entity);
 
