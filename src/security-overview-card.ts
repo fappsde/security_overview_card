@@ -74,7 +74,13 @@ export class SecurityOverviewCard extends LitElement {
 
     const entities = this.config.entities || [];
     const devices = this.config.devices || [];
+
+    // Get entities for list view (with visibility filters)
     const securityEntities = this._getSecurityEntities(entities, devices);
+
+    // Get all entities for compact overview (without visibility filters)
+    const allEntities = this._getAllSecurityEntities(entities, devices);
+
     const maxHeightStyle = this.config.max_height ? `max-height: ${this.config.max_height};` : '';
 
     return html`
@@ -83,7 +89,7 @@ export class SecurityOverviewCard extends LitElement {
           ${securityEntities.length === 0
             ? html`<p class="empty-state">No security entities configured</p>`
             : html`
-                ${this.config.show_compact_overview !== false ? this._renderCompactOverview(securityEntities) : ''}
+                ${this.config.show_compact_overview !== false ? this._renderCompactOverview(allEntities) : ''}
                 <div class="entities">
                   ${securityEntities.map((entity) => this._renderEntity(entity))}
                 </div>
@@ -93,10 +99,51 @@ export class SecurityOverviewCard extends LitElement {
     `;
   }
 
+  private _getAllSecurityEntities(entities: string[], devices: string[]) {
+    // Get all entities without visibility filters (for compact overview)
+    if (entities.length > 0) {
+      return entities
+        .map((entityId) => this.hass.states[entityId])
+        .filter((entity) => entity !== undefined);
+    }
+
+    // Get all security-related entities
+    let allSecurityEntities = Object.values(this.hass.states).filter((entity) => {
+      const domain = entity.entity_id.split('.')[0];
+      return ['alarm_control_panel', 'binary_sensor', 'lock', 'camera', 'sensor'].includes(domain) &&
+        (entity.entity_id.includes('security') ||
+         entity.entity_id.includes('alarm') ||
+         entity.entity_id.includes('door') ||
+         entity.entity_id.includes('window') ||
+         entity.entity_id.includes('motion') ||
+         entity.entity_id.includes('lock') ||
+         entity.entity_id.includes('tamper') ||
+         entity.attributes.device_class === 'door' ||
+         entity.attributes.device_class === 'window' ||
+         entity.attributes.device_class === 'motion' ||
+         entity.attributes.device_class === 'opening' ||
+         entity.attributes.device_class === 'lock' ||
+         entity.attributes.device_class === 'safety' ||
+         entity.attributes.device_class === 'smoke' ||
+         entity.attributes.device_class === 'gas' ||
+         entity.attributes.device_class === 'tamper');
+    });
+
+    // Filter by selected devices if any
+    if (devices.length > 0) {
+      allSecurityEntities = allSecurityEntities.filter((entity) => {
+        const entityDeviceId = this._getEntityDeviceId(entity);
+        return entityDeviceId && devices.includes(entityDeviceId);
+      });
+    }
+
+    return allSecurityEntities;
+  }
+
   private _getSecurityEntities(entities: string[], devices: string[]) {
     let allSecurityEntities: any[] = [];
 
-    // If specific entities are configured, use those
+    // If specific entities are configured, use those (no visibility filter for manual selection)
     if (entities.length > 0) {
       allSecurityEntities = entities
         .map((entityId) => this.hass.states[entityId])
@@ -131,31 +178,31 @@ export class SecurityOverviewCard extends LitElement {
           return entityDeviceId && devices.includes(entityDeviceId);
         });
       }
+
+      // Apply entity type visibility settings ONLY for auto-discovery
+      allSecurityEntities = allSecurityEntities.filter((entity) => {
+        const entityType = this._getEntityType(entity);
+
+        switch (entityType) {
+          case 'alarm':
+            return this.config.show_alarms !== false;
+          case 'lock':
+            return this.config.show_locks !== false;
+          case 'door':
+            return this.config.show_doors !== false;
+          case 'window':
+            return this.config.show_windows !== false;
+          case 'motion':
+            return this.config.show_motion !== false;
+          case 'camera':
+            return this.config.show_cameras !== false;
+          case 'tamper':
+            return this.config.show_tamper === true; // Default false for tamper
+          default:
+            return true;
+        }
+      });
     }
-
-    // Apply entity type visibility settings to all entities (manual or auto-discovered)
-    allSecurityEntities = allSecurityEntities.filter((entity) => {
-      const entityType = this._getEntityType(entity);
-
-      switch (entityType) {
-        case 'alarm':
-          return this.config.show_alarms !== false;
-        case 'lock':
-          return this.config.show_locks !== false;
-        case 'door':
-          return this.config.show_doors !== false;
-        case 'window':
-          return this.config.show_windows !== false;
-        case 'motion':
-          return this.config.show_motion !== false;
-        case 'camera':
-          return this.config.show_cameras !== false;
-        case 'tamper':
-          return this.config.show_tamper === true; // Default false for tamper
-        default:
-          return true;
-      }
-    });
 
     return allSecurityEntities;
   }
