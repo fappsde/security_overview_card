@@ -141,15 +141,16 @@ export class SecurityOverviewCard extends LitElement {
   }
 
   private _getSecurityEntities(entities: string[], devices: string[]) {
+    // Get all selected/discovered entities first
     let allSecurityEntities: any[] = [];
 
-    // If specific entities are configured, use those (no visibility filter for manual selection)
     if (entities.length > 0) {
+      // Use manually selected entities
       allSecurityEntities = entities
         .map((entityId) => this.hass.states[entityId])
         .filter((entity) => entity !== undefined);
     } else {
-      // Get all security-related entities
+      // Auto-discover security-related entities
       allSecurityEntities = Object.values(this.hass.states).filter((entity) => {
         const domain = entity.entity_id.split('.')[0];
         return ['alarm_control_panel', 'binary_sensor', 'lock', 'camera', 'sensor'].includes(domain) &&
@@ -178,31 +179,31 @@ export class SecurityOverviewCard extends LitElement {
           return entityDeviceId && devices.includes(entityDeviceId);
         });
       }
-
-      // Apply entity type visibility settings ONLY for auto-discovery
-      allSecurityEntities = allSecurityEntities.filter((entity) => {
-        const entityType = this._getEntityType(entity);
-
-        switch (entityType) {
-          case 'alarm':
-            return this.config.show_alarms !== false;
-          case 'lock':
-            return this.config.show_locks !== false;
-          case 'door':
-            return this.config.show_doors !== false;
-          case 'window':
-            return this.config.show_windows !== false;
-          case 'motion':
-            return this.config.show_motion !== false;
-          case 'camera':
-            return this.config.show_cameras !== false;
-          case 'tamper':
-            return this.config.show_tamper === true; // Default false for tamper
-          default:
-            return true;
-        }
-      });
     }
+
+    // Apply entity type visibility settings for LIST VIEW (applies to all entities)
+    allSecurityEntities = allSecurityEntities.filter((entity) => {
+      const entityType = this._getEntityType(entity);
+
+      switch (entityType) {
+        case 'alarm':
+          return this.config.show_alarms !== false;
+        case 'lock':
+          return this.config.show_locks !== false;
+        case 'door':
+          return this.config.show_doors !== false;
+        case 'window':
+          return this.config.show_windows !== false;
+        case 'motion':
+          return this.config.show_motion !== false;
+        case 'camera':
+          return this.config.show_cameras !== false;
+        case 'tamper':
+          return this.config.show_tamper === true; // Default false for tamper
+        default:
+          return true;
+      }
+    });
 
     return allSecurityEntities;
   }
