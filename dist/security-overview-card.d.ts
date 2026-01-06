@@ -9,6 +9,13 @@ export interface SecurityOverviewCardConfig extends LovelaceCardConfig {
     show_compact_overview?: boolean;
     theme?: string;
     max_height?: string;
+    show_alarms?: boolean;
+    show_locks?: boolean;
+    show_doors?: boolean;
+    show_windows?: boolean;
+    show_motion?: boolean;
+    show_cameras?: boolean;
+    show_tamper?: boolean;
 }
 export declare class SecurityOverviewCard extends LitElement {
     hass: HomeAssistant;
@@ -18,6 +25,7 @@ export declare class SecurityOverviewCard extends LitElement {
     static getConfigElement(): Promise<LovelaceCardEditor>;
     protected render(): TemplateResult;
     private _getSecurityEntities;
+    private _getEntityType;
     private _getEntityDeviceId;
     private _renderCompactOverview;
     private _renderEntity;
