@@ -40,6 +40,7 @@ export declare class SecurityOverviewCard extends LitElement {
     private _isEntityActive;
     private _getEntityIcon;
     private _formatState;
+    private _formatLastActivity;
     private _handleEntityClick;
     getCardSize(): number;
     static get styles(): CSSResultGroup;

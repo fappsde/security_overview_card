@@ -456,7 +456,6 @@ export class SecurityOverviewCard extends LitElement {
   }
 
   private _renderEntity(entity: any): TemplateResult {
-    const state = entity.state;
     const name = entity.attributes.friendly_name || entity.entity_id;
     const isActive = this._isEntityActive(entity);
 
@@ -469,6 +468,15 @@ export class SecurityOverviewCard extends LitElement {
     const isTilted = hasTiltDetection && entity.attributes.detailed_state.toLowerCase() === 'gekippt';
     const tiltAngle = entity.attributes.angle;
 
+    // Prepare badge text (formatted state with angle if tilted)
+    let badgeText = this._formatState(entity);
+    if (isTilted && tiltAngle) {
+      badgeText = `${badgeText} (${tiltAngle}°)`;
+    }
+
+    // Get last activity text
+    const lastActivity = this._formatLastActivity(entity);
+
     return html`
       <div class="entity-row ${stateClass}" @click="${() => this._handleEntityClick(entity.entity_id)}">
         <div class="entity-icon">
@@ -476,13 +484,10 @@ export class SecurityOverviewCard extends LitElement {
         </div>
         <div class="entity-info">
           <div class="entity-name">${name}</div>
-          <div class="entity-state">
-            ${this._formatState(entity)}
-            ${isTilted && tiltAngle ? html`<span class="tilt-angle"> (${tiltAngle}°)</span>` : ''}
-          </div>
+          <div class="entity-state">${lastActivity}</div>
         </div>
         <div class="entity-status">
-          <span class="status-badge ${stateClass}">${state}</span>
+          <span class="status-badge ${stateClass}">${badgeText}</span>
         </div>
       </div>
     `;
@@ -618,6 +623,66 @@ export class SecurityOverviewCard extends LitElement {
     }
 
     return state.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+  }
+
+  private _formatLastActivity(entity: any): string {
+    const isActive = this._isEntityActive(entity);
+    const lastChanged = entity.last_changed;
+
+    if (!lastChanged) {
+      return '';
+    }
+
+    const lastChangedDate = new Date(lastChanged);
+    const now = new Date();
+    const diffMs = now.getTime() - lastChangedDate.getTime();
+    const diffMinutes = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    const deviceClass = entity.attributes.device_class;
+    const domain = entity.entity_id.split('.')[0];
+
+    // Determine action label based on entity type and state
+    let actionLabel = isActive ? 'Active' : 'Inactive';
+
+    if (deviceClass === 'window' || deviceClass === 'door') {
+      if (entity.attributes.detailed_state) {
+        const detailedState = entity.attributes.detailed_state.toLowerCase();
+        if (detailedState === 'gekippt') {
+          actionLabel = 'Tilted';
+        } else if (detailedState === 'offen') {
+          actionLabel = 'Opened';
+        } else {
+          actionLabel = 'Closed';
+        }
+      } else {
+        actionLabel = isActive ? 'Opened' : 'Closed';
+      }
+    } else if (deviceClass === 'motion') {
+      actionLabel = isActive ? 'Detected' : 'Clear';
+    } else if (domain === 'lock') {
+      actionLabel = isActive ? 'Unlocked' : 'Locked';
+    } else if (domain === 'alarm_control_panel') {
+      actionLabel = isActive ? 'Triggered' : 'Disarmed';
+    }
+
+    // Format time difference
+    if (diffMinutes < 1) {
+      return `${actionLabel} just now`;
+    } else if (diffMinutes < 60) {
+      return `${actionLabel} ${diffMinutes} min ago`;
+    } else if (diffHours < 24) {
+      return `${actionLabel} ${diffHours}h ago`;
+    } else if (diffDays === 1) {
+      return `${actionLabel} yesterday`;
+    } else if (diffDays < 7) {
+      return `${actionLabel} ${diffDays}d ago`;
+    } else {
+      // Show date for older changes
+      const dateStr = lastChangedDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      return `${actionLabel} ${dateStr}`;
+    }
   }
 
   private _handleEntityClick(entityId: string): void {
