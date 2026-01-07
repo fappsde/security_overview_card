@@ -29,12 +29,12 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
         <div class="settings-section">
           <h3>Card Settings</h3>
 
-          <paper-input
+          <ha-textfield
             label="Title"
             .value="${this._config.title || ''}"
             .configValue="${'title'}"
-            @value-changed="${this._valueChanged}"
-          ></paper-input>
+            @input="${this._valueChanged}"
+          ></ha-textfield>
 
           <ha-formfield label="Show Header">
             <ha-switch
@@ -75,23 +75,23 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
             </ha-formfield>
           </div>
 
-          <paper-input
+          <ha-textfield
             label="Max Height (e.g., 300px, 50vh)"
             .value="${this._config.max_height || ''}"
             .configValue="${'max_height'}"
-            @value-changed="${this._valueChanged}"
+            @input="${this._valueChanged}"
             placeholder="Leave empty for auto height"
-          ></paper-input>
+          ></ha-textfield>
 
-          <paper-input
+          <ha-textfield
             label="Max Items (before scrolling)"
             type="number"
             min="1"
             .value="${this._config.max_items || 6}"
             .configValue="${'max_items'}"
-            @value-changed="${this._valueChanged}"
+            @input="${this._valueChanged}"
             placeholder="6"
-          ></paper-input>
+          ></ha-textfield>
         </div>
 
         <div class="visibility-config">
@@ -286,8 +286,14 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
     let value: any;
     if (target.checked !== undefined) {
       value = target.checked;
-    } else {
+    } else if (target.value !== undefined) {
+      // ha-textfield uses target.value
+      value = target.value;
+    } else if (ev.detail?.value !== undefined) {
+      // Some components use ev.detail.value
       value = ev.detail.value;
+    } else {
+      value = target.value || '';
     }
 
     // Convert max_items to number
@@ -602,10 +608,11 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
         padding: 16px;
       }
 
-      paper-input,
+      ha-textfield,
       ha-formfield {
         display: block;
         margin-bottom: 16px;
+        width: 100%;
       }
 
       .settings-section {
