@@ -9,6 +9,7 @@ export interface SecurityOverviewCardConfig extends LovelaceCardConfig {
     show_compact_overview?: boolean;
     theme?: string;
     max_height?: string;
+    max_items?: number;
     show_alarms?: boolean;
     show_locks?: boolean;
     show_doors?: boolean;

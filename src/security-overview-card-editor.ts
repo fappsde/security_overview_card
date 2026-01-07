@@ -80,6 +80,16 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
           placeholder="Leave empty for auto height"
         ></paper-input>
 
+        <paper-input
+          label="Max Items (before scrolling)"
+          type="number"
+          min="1"
+          .value="${this._config.max_items || 6}"
+          .configValue="${'max_items'}"
+          @value-changed="${this._valueChanged}"
+          placeholder="6"
+        ></paper-input>
+
         <div class="visibility-config">
           <h3>Entity Type Visibility</h3>
           <p class="description">
@@ -271,6 +281,14 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
       value = target.checked;
     } else {
       value = ev.detail.value;
+    }
+
+    // Convert max_items to number
+    if (configValue === 'max_items' && value !== '') {
+      value = parseInt(value, 10);
+      if (isNaN(value) || value < 1) {
+        value = 6; // Default fallback
+      }
     }
 
     if (this._config[configValue] === value) {
