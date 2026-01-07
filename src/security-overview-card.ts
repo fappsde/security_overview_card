@@ -11,6 +11,7 @@ export interface SecurityOverviewCardConfig extends LovelaceCardConfig {
   show_compact_overview?: boolean;
   theme?: string;
   max_height?: string;
+  max_items?: number;
   show_alarms?: boolean;
   show_locks?: boolean;
   show_doors?: boolean;
@@ -38,6 +39,7 @@ export class SecurityOverviewCard extends LitElement {
       devices: [],
       show_header: true,
       show_compact_overview: true,
+      max_items: 6,
       show_alarms: true,
       show_locks: true,
       show_doors: true,
@@ -60,6 +62,7 @@ export class SecurityOverviewCard extends LitElement {
       title: 'Security Overview',
       show_header: true,
       show_compact_overview: true,
+      max_items: 6,
       show_alarms: true,
       show_locks: true,
       show_doors: true,
@@ -101,7 +104,20 @@ export class SecurityOverviewCard extends LitElement {
     // Get all entities for compact overview (without visibility filters)
     const allEntities = this._getAllSecurityEntities(entities, devices);
 
-    const maxHeightStyle = this.config.max_height ? `max-height: ${this.config.max_height};` : '';
+    // Calculate max height
+    let maxHeightStyle = '';
+    if (this.config.max_height) {
+      // Use explicit max_height if provided
+      maxHeightStyle = `max-height: ${this.config.max_height};`;
+    } else if (this.config.max_items !== undefined) {
+      // Calculate height based on max_items
+      // Overview height: ~180px, Item height: ~72px (includes gap)
+      const maxItems = Math.max(1, this.config.max_items); // Minimum 1 item
+      const overviewHeight = this.config.show_compact_overview !== false ? 180 : 0;
+      const itemsHeight = maxItems * 72;
+      const calculatedHeight = overviewHeight + itemsHeight;
+      maxHeightStyle = `max-height: ${calculatedHeight}px;`;
+    }
 
     // Separate active and inactive entities
     const activeEntities = securityEntities.filter((entity) => this._isEntityActive(entity));
@@ -714,6 +730,9 @@ export class SecurityOverviewCard extends LitElement {
       .card-content {
         padding: 0;
         overflow-y: auto;
+        overflow-x: hidden;
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
       }
 
       .empty-state {

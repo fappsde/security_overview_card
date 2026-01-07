@@ -36,7 +36,7 @@ const le=e=>(t,i)=>{void 0!==i?i.addInitializer(()=>{customElements.define(e,t)}
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
- */function pe(e){return ue({...e,state:!0,attribute:!1})}let ge=class extends ae{constructor(){super(...arguments),this.selectedCategories=[]}static getStubConfig(){return{type:"custom:security-overview-card",title:"Security Overview",entities:[],devices:[],show_header:!0,show_compact_overview:!0,show_alarms:!0,show_locks:!0,show_doors:!0,show_windows:!0,show_motion:!0,show_cameras:!0,show_tamper:!1,show_safety:!0,show_diagnostic:!0,category_selection_mode:"single",show_hidden_when_active:!1}}setConfig(e){if(!e)throw new Error("Invalid configuration");this.config={title:"Security Overview",show_header:!0,show_compact_overview:!0,show_alarms:!0,show_locks:!0,show_doors:!0,show_windows:!0,show_motion:!0,show_cameras:!0,show_tamper:!1,show_safety:!0,show_diagnostic:!0,category_selection_mode:"single",show_hidden_when_active:!1,...e}}static async getConfigElement(){return await Promise.resolve().then(function(){return ye}),document.createElement("security-overview-card-editor")}render(){if(!this.config||!this.hass)return B``;const e=this.config.entities||[],t=this.config.devices||[];let i;i=this.selectedCategories.length>0?this._getEntitiesByCategories(e,t,this.selectedCategories):this._getSecurityEntities(e,t);const s=this._getAllSecurityEntities(e,t),o=this.config.max_height?`max-height: ${this.config.max_height};`:"",n=i.filter(e=>this._isEntityActive(e)),r=i.filter(e=>!this._isEntityActive(e));return B`
+ */function pe(e){return ue({...e,state:!0,attribute:!1})}let ge=class extends ae{constructor(){super(...arguments),this.selectedCategories=[]}static getStubConfig(){return{type:"custom:security-overview-card",title:"Security Overview",entities:[],devices:[],show_header:!0,show_compact_overview:!0,max_items:6,show_alarms:!0,show_locks:!0,show_doors:!0,show_windows:!0,show_motion:!0,show_cameras:!0,show_tamper:!1,show_safety:!0,show_diagnostic:!0,category_selection_mode:"single",show_hidden_when_active:!1}}setConfig(e){if(!e)throw new Error("Invalid configuration");this.config={title:"Security Overview",show_header:!0,show_compact_overview:!0,max_items:6,show_alarms:!0,show_locks:!0,show_doors:!0,show_windows:!0,show_motion:!0,show_cameras:!0,show_tamper:!1,show_safety:!0,show_diagnostic:!0,category_selection_mode:"single",show_hidden_when_active:!1,...e}}static async getConfigElement(){return await Promise.resolve().then(function(){return ye}),document.createElement("security-overview-card-editor")}render(){if(!this.config||!this.hass)return B``;const e=this.config.entities||[],t=this.config.devices||[];let i;i=this.selectedCategories.length>0?this._getEntitiesByCategories(e,t,this.selectedCategories):this._getSecurityEntities(e,t);const s=this._getAllSecurityEntities(e,t);let o="";if(this.config.max_height)o=`max-height: ${this.config.max_height};`;else if(void 0!==this.config.max_items){const e=Math.max(1,this.config.max_items);o=`max-height: ${(!1!==this.config.show_compact_overview?180:0)+72*e}px;`}const n=i.filter(e=>this._isEntityActive(e)),r=i.filter(e=>!this._isEntityActive(e));return B`
       <ha-card .header="${this.config.show_header?this.config.title:void 0}">
         <div class="card-content" style="${o}">
           ${0===i.length?B`<p class="empty-state">No security entities configured</p>`:B`
@@ -91,6 +91,9 @@ const le=e=>(t,i)=>{void 0!==i?i.addInitializer(()=>{customElements.define(e,t)}
       .card-content {
         padding: 0;
         overflow-y: auto;
+        overflow-x: hidden;
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
       }
 
       .empty-state {
@@ -360,6 +363,16 @@ const le=e=>(t,i)=>{void 0!==i?i.addInitializer(()=>{customElements.define(e,t)}
           placeholder="Leave empty for auto height"
         ></paper-input>
 
+        <paper-input
+          label="Max Items (before scrolling)"
+          type="number"
+          min="1"
+          .value="${this._config.max_items||6}"
+          .configValue="${"max_items"}"
+          @value-changed="${this._valueChanged}"
+          placeholder="6"
+        ></paper-input>
+
         <div class="visibility-config">
           <h3>Entity Type Visibility</h3>
           <p class="description">
@@ -518,7 +531,7 @@ const le=e=>(t,i)=>{void 0!==i?i.addInitializer(()=>{customElements.define(e,t)}
           </ha-button>
         </div>
       </div>
-    `}_valueChanged(e){if(!this._config||!this.hass)return;const t=e.target,i=t.configValue;if(!i)return;let s;if(s=void 0!==t.checked?t.checked:e.detail.value,this._config[i]===s)return;const o={...this._config,[i]:s};me(this,"config-changed",{config:o})}_selectionModeChanged(e){if(!this._config||!this.hass)return;const t=e.target.value;if(this._config.category_selection_mode===t)return;const i={...this._config,category_selection_mode:t};me(this,"config-changed",{config:i})}_entityChanged(e){if(e.stopPropagation(),!this._config||!this.hass)return;const t=e.target.configValue,i=e.detail.value;if(null==i)return;const s=[...this._config.entities||[]];s[t]=i;const o={...this._config,entities:s};me(this,"config-changed",{config:o})}_addEntity(){const e=[...this._config.entities||[],""],t={...this._config,entities:e};me(this,"config-changed",{config:t})}_removeEntity(e){const t=e.currentTarget.index,i=[...this._config.entities||[]];i.splice(t,1);const s={...this._config,entities:i};me(this,"config-changed",{config:s})}_deviceToggled(e,t){const i=e.target.checked;let s=[...this._config.entities||[]];const o=(t.entities||[]).map(e=>e.entity_id);i?o.forEach(e=>{s.includes(e)||s.push(e)}):s=s.filter(e=>!o.includes(e));const n={...this._config,entities:s};me(this,"config-changed",{config:n})}_isDeviceExpanded(e){return this._expandedDevices.has(e)}_toggleDeviceExpand(e){this._expandedDevices.has(e)?this._expandedDevices.delete(e):this._expandedDevices.add(e),this.requestUpdate()}_renderDeviceEntities(e){const t=e.entities||[],i=this._config.entities||[];return 0===t.length?B`
+    `}_valueChanged(e){if(!this._config||!this.hass)return;const t=e.target,i=t.configValue;if(!i)return;let s;if(s=void 0!==t.checked?t.checked:e.detail.value,"max_items"===i&&""!==s&&(s=parseInt(s,10),(isNaN(s)||s<1)&&(s=6)),this._config[i]===s)return;const o={...this._config,[i]:s};me(this,"config-changed",{config:o})}_selectionModeChanged(e){if(!this._config||!this.hass)return;const t=e.target.value;if(this._config.category_selection_mode===t)return;const i={...this._config,category_selection_mode:t};me(this,"config-changed",{config:i})}_entityChanged(e){if(e.stopPropagation(),!this._config||!this.hass)return;const t=e.target.configValue,i=e.detail.value;if(null==i)return;const s=[...this._config.entities||[]];s[t]=i;const o={...this._config,entities:s};me(this,"config-changed",{config:o})}_addEntity(){const e=[...this._config.entities||[],""],t={...this._config,entities:e};me(this,"config-changed",{config:t})}_removeEntity(e){const t=e.currentTarget.index,i=[...this._config.entities||[]];i.splice(t,1);const s={...this._config,entities:i};me(this,"config-changed",{config:s})}_deviceToggled(e,t){const i=e.target.checked;let s=[...this._config.entities||[]];const o=(t.entities||[]).map(e=>e.entity_id);i?o.forEach(e=>{s.includes(e)||s.push(e)}):s=s.filter(e=>!o.includes(e));const n={...this._config,entities:s};me(this,"config-changed",{config:n})}_isDeviceExpanded(e){return this._expandedDevices.has(e)}_toggleDeviceExpand(e){this._expandedDevices.has(e)?this._expandedDevices.delete(e):this._expandedDevices.add(e),this.requestUpdate()}_renderDeviceEntities(e){const t=e.entities||[],i=this._config.entities||[];return 0===t.length?B`
         <div class="device-entities">
           <p class="info-message">No entities found for this device.</p>
         </div>
