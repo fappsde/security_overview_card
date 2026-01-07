@@ -26,69 +26,73 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
 
     return html`
       <div class="card-config">
-        <paper-input
-          label="Title"
-          .value="${this._config.title || ''}"
-          .configValue="${'title'}"
-          @value-changed="${this._valueChanged}"
-        ></paper-input>
+        <div class="settings-section">
+          <h3>Card Settings</h3>
 
-        <ha-formfield label="Show Header">
-          <ha-switch
-            .checked="${this._config.show_header !== false}"
-            .configValue="${'show_header'}"
-            @change="${this._valueChanged}"
-          ></ha-switch>
-        </ha-formfield>
+          <paper-input
+            label="Title"
+            .value="${this._config.title || ''}"
+            .configValue="${'title'}"
+            @value-changed="${this._valueChanged}"
+          ></paper-input>
 
-        <ha-formfield label="Show Compact Overview">
-          <ha-switch
-            .checked="${this._config.show_compact_overview !== false}"
-            .configValue="${'show_compact_overview'}"
-            @change="${this._valueChanged}"
-          ></ha-switch>
-        </ha-formfield>
-
-        <div class="selection-mode-config">
-          <label>Category Selection Mode</label>
-          <p class="description">
-            Choose how clicking categories in the compact overview filters the list. Single mode shows only one category at a time, while Multiple mode allows selecting multiple categories simultaneously.
-          </p>
-          <ha-formfield label="Single Selection">
-            <ha-radio
-              name="category_selection_mode"
-              value="single"
-              .checked="${this._config.category_selection_mode !== 'multiple'}"
-              @change="${this._selectionModeChanged}"
-            ></ha-radio>
+          <ha-formfield label="Show Header">
+            <ha-switch
+              .checked="${this._config.show_header !== false}"
+              .configValue="${'show_header'}"
+              @change="${this._valueChanged}"
+            ></ha-switch>
           </ha-formfield>
-          <ha-formfield label="Multiple Selection">
-            <ha-radio
-              name="category_selection_mode"
-              value="multiple"
-              .checked="${this._config.category_selection_mode === 'multiple'}"
-              @change="${this._selectionModeChanged}"
-            ></ha-radio>
+
+          <ha-formfield label="Show Compact Overview">
+            <ha-switch
+              .checked="${this._config.show_compact_overview !== false}"
+              .configValue="${'show_compact_overview'}"
+              @change="${this._valueChanged}"
+            ></ha-switch>
           </ha-formfield>
+
+          <div class="selection-mode-config">
+            <label>Category Selection Mode</label>
+            <p class="description">
+              Choose how clicking categories in the compact overview filters the list. Single mode shows only one category at a time, while Multiple mode allows selecting multiple categories simultaneously.
+            </p>
+            <ha-formfield label="Single Selection">
+              <ha-radio
+                name="category_selection_mode"
+                value="single"
+                .checked="${this._config.category_selection_mode !== 'multiple'}"
+                @change="${this._selectionModeChanged}"
+              ></ha-radio>
+            </ha-formfield>
+            <ha-formfield label="Multiple Selection">
+              <ha-radio
+                name="category_selection_mode"
+                value="multiple"
+                .checked="${this._config.category_selection_mode === 'multiple'}"
+                @change="${this._selectionModeChanged}"
+              ></ha-radio>
+            </ha-formfield>
+          </div>
+
+          <paper-input
+            label="Max Height (e.g., 300px, 50vh)"
+            .value="${this._config.max_height || ''}"
+            .configValue="${'max_height'}"
+            @value-changed="${this._valueChanged}"
+            placeholder="Leave empty for auto height"
+          ></paper-input>
+
+          <paper-input
+            label="Max Items (before scrolling)"
+            type="number"
+            min="1"
+            .value="${this._config.max_items || 6}"
+            .configValue="${'max_items'}"
+            @value-changed="${this._valueChanged}"
+            placeholder="6"
+          ></paper-input>
         </div>
-
-        <paper-input
-          label="Max Height (e.g., 300px, 50vh)"
-          .value="${this._config.max_height || ''}"
-          .configValue="${'max_height'}"
-          @value-changed="${this._valueChanged}"
-          placeholder="Leave empty for auto height"
-        ></paper-input>
-
-        <paper-input
-          label="Max Items (before scrolling)"
-          type="number"
-          min="1"
-          .value="${this._config.max_items || 6}"
-          .configValue="${'max_items'}"
-          @value-changed="${this._valueChanged}"
-          placeholder="6"
-        ></paper-input>
 
         <div class="visibility-config">
           <h3>Entity Type Visibility</h3>
@@ -182,8 +186,11 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
           </p>
         </div>
 
+        <div class="divider"></div>
+
         <div class="devices-config">
-          <h3>Device Selection</h3>
+          <h3>Entity Selection</h3>
+          <h4>Device Selection</h4>
           <p class="description">
             Select specific security devices or groups to display. Entities are automatically grouped by device or by name. Leave all unchecked to show all discovered security entities.
           </p>
@@ -229,7 +236,7 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
         </div>
 
         <div class="entities-config">
-          <h3>Manual Entity Selection</h3>
+          <h4>Manual Entity Selection</h4>
           <p class="description">
             Manually add specific entities. This will override device selection and auto-discovery.
           </p>
@@ -601,6 +608,17 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
         margin-bottom: 16px;
       }
 
+      .settings-section {
+        margin-bottom: 24px;
+      }
+
+      .settings-section h3 {
+        margin-top: 0;
+        margin-bottom: 16px;
+        font-size: 1.2em;
+        font-weight: 600;
+      }
+
       .selection-mode-config,
       .visibility-config,
       .devices-config,
@@ -632,7 +650,17 @@ export class SecurityOverviewCardEditor extends LitElement implements LovelaceCa
       .entities-config h3 {
         margin-top: 0;
         margin-bottom: 8px;
-        font-size: 1.1em;
+        font-size: 1.2em;
+        font-weight: 600;
+      }
+
+      .devices-config h4,
+      .entities-config h4 {
+        margin-top: 16px;
+        margin-bottom: 8px;
+        font-size: 1.05em;
+        font-weight: 500;
+        color: var(--primary-text-color);
       }
 
       .description {
